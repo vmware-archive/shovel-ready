@@ -1,0 +1,14 @@
+doctype html
+html(lang='en')
+    head
+        title='List'
+    body
+        h1 Lists
+        ol
+            for item in list
+                li
+                    a(href='/#{item.listId}')=item.listName
+        form(method='post')
+            label List name
+                input(type='text' name='listName')
+            input(type='submit')
