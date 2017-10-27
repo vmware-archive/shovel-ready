@@ -18,30 +18,8 @@ function guid() {
         s4() + '-' + s4() + s4() + s4();
 }
 
-function loadListEvents(listId, fromVersion = 1, toVersion = 'latest') {
-    return fetch(`/${listId}/events?fromVersion=${fromVersion}&toVersion=${toVersion}`).then((res) => res.json())
-}
-
-function loadListState(listId, currentStates, currentVersion, handlerList) {
-    return loadListEvents(listId, currentVersion, 'latest').then((eventRecords) => {
-        const currentVersion = eventRecords.length > 0 ? eventRecords[eventRecords.length - 1].listVersion : 0;
-        return handlerList.map((handlers, i) => {
-            return {
-                currentState: list.buildState(handlers, eventRecords.map((e) => e.eventData), currentStates[i]),
-                currentVersion
-            }
-        });
-    });
-}
-
-const emptyViewState = {
-    name: 'Unknown',
-    items: [],
-};
-
 const viewStateHandlers = {
     listCreated: (event, state) => {
-        console.log('STATE', state);
         return {...state, name: event.listName};
     },
     itemAdded: (event, state) => {
@@ -52,31 +30,45 @@ const viewStateHandlers = {
     }
 };
 
-const render = (validationState, viewState, uiState) => {
-    console.log(validationState, viewState, uiState);
-    const onNewTaskInput = (newTaskName) => {
-        render(validationState, viewState, {...uiState, newTaskName: newTaskName});
-    }
-    const onNewTaskSubmit = () => {
-        let result = list.addItem({id: guid(), name: uiState.newTaskName}, validationState);
-        if (result.type === 'ok') {
-            const [event,nextStateFn] = result.v;
-            const nextValidationState = nextStateFn(validationState);
-            const nextViewState = viewStateHandlers[event.type](event, viewState);
-            const nextUiState = {...uiState, newTaskName: ''};
-            render(nextValidationState, nextViewState, nextUiState);
-        } else {
-            render(validationState, viewState, {...uiState, error: result.v});
-        }
-
-    }
-
-    ReactDOM.render(<App list={viewState} ui={uiState} onNewTaskInput={onNewTaskInput} onNewTaskSubmit={onNewTaskSubmit} />, document.getElementById('root'));
+const emptyViewState = {
+    name: 'Unknown',
+    items: [],
 };
 
-loadListState(listId, [emptyViewState, list.emptyState()], 1, [viewStateHandlers, list.handlers]).then((stateResults) => {
-    const [viewStateResult, validationStateResult] = stateResults;
-    const viewState = viewStateResult.currentState;
-    const validationState = validationStateResult.currentState;
-    render(validationState, viewState, {})
+function loadListEvents(listId, fromVersion = 1, toVersion = 'latest') {
+    return fetch(`/${listId}/events?fromVersion=${fromVersion}&toVersion=${toVersion}`).then((res) => res.json())
+}
+
+const render = (commands, events, uiState) => {
+    console.time('render');
+    const onNewTaskInput = (newTaskName) => {
+        render(commands, events, {...uiState, newTaskName: newTaskName});
+    };
+
+    const onNewTaskSubmit = () => {
+        const validationState = events.reduce((validationState, event) =>
+            list.handlers[event.type](event, validationState),
+            list.emptyState());
+        const addItemCommand = list.addItem({id: guid(), name: uiState.newTaskName});
+        const {type, v} = list.commandHandlers.addItem(addItemCommand, validationState);
+        if (type === 'ok') {
+            let [event,] = v;
+            render(commands.concat([[addItemCommand, event]]), events, {...uiState, newTaskName: ''});
+        } else {
+            console.log("ERROR", type, v);
+        }
+    };
+
+    let viewState = events.concat(commands.map(t => t[1])).reduce((viewState, event) => {
+        return viewStateHandlers[event.type](event, viewState);
+    }, emptyViewState);
+
+    ReactDOM.render(
+        <App list={viewState} ui={uiState} onNewTaskInput={onNewTaskInput} onNewTaskSubmit={onNewTaskSubmit} />,
+        document.getElementById('root'));
+    console.timeEnd('render');
+}
+
+loadListEvents(listId, 1, 'latest').then((eventRecords) => {
+    render([], eventRecords.map(eventRecord => eventRecord.eventData), {});
 });

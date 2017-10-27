@@ -32,6 +32,24 @@ export function buildState(handlers, events, currentState) {
 }
 
 
+/*               commands                */
+export function createList(listId, listName) {
+    return {
+        type: 'createList',
+        listId,
+        listName,
+    }
+}
+
+export function addItem(item) {
+    return {
+        type: 'addItem',
+        item
+    }
+}
+
+// ADD OTHER COMMANDS HERE
+
 /*                events                 */
 export function listCreated(listId, listName) {
     return {
@@ -89,47 +107,49 @@ export function emptyState() {
 
 
 /*             command handlers             */
-export function createList(listId, listName, state) {
-    const event = listCreated(listId, listName);
-    if (state.created) {
-        return err(ERROR_CANNOT_CREATE_ALREADY_CREATED_LIST);
-    }
-    return ok([
-        event,
-        handlers.listCreated.bind(null, event),
-    ])
-}
+export const commandHandlers = {
+    createList: (command, state) => {
+        const event = listCreated(command.listId, command.listName);
+        if (state.created) {
+            return err(ERROR_CANNOT_CREATE_ALREADY_CREATED_LIST);
+        }
+        return ok([
+            event,
+            handlers.listCreated.bind(null, event),
+        ])
+    },
 
-export function addItem(item, state) {
-    const event = itemAdded(item);
-    if (state.itemIds.indexOf(item.id) !== -1) {
-        return err(ERROR_ITEM_ALREADY_EXISTS);
-    }
-    return ok([
-        event,
-        handlers.itemAdded.bind(null, event),
-    ])
-}
+    addItem: (command, state) => {
+        const event = itemAdded(command.item);
+        if (state.itemIds.indexOf(command.item.id) !== -1) {
+            return err(ERROR_ITEM_ALREADY_EXISTS);
+        }
+        return ok([
+            event,
+            handlers.itemAdded.bind(null, event),
+        ])
+    },
 
-export function removeItem(itemId, state) {
-    return ok([
-        itemRemoved(itemId),
-        handlers.itemRemoved.bind(null, event),
-    ])
-}
+    removeItem: (command, state) => {
+        return ok([
+            itemRemoved(command.itemId),
+            handlers.itemRemoved.bind(null, event),
+        ])
+    },
 
-export function completeItem(itemId, state) {
-    const event = itemCompleted(itemId);
-    return ok([
-        event,
-        handlers.itemCompleted.bind(null, event),
-    ])
-}
+    completeItem: (command, state) => {
+        const event = itemCompleted(command.itemId);
+        return ok([
+            event,
+            handlers.itemCompleted.bind(null, event),
+        ])
+    },
 
-export function uncompleteItem(itemId, state) {
-    const event = itemUncompleted(itemId);
-    return ok([
-        event,
-        handlers.itemUncompleted.bind(null, event),
-    ])
+    uncompleteItem: (command, state) => {
+        const event = itemUncompleted(command.itemId);
+        return ok([
+            event,
+            handlers.itemUncompleted.bind(null, event),
+        ])
+    },
 }

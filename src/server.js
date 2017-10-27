@@ -46,7 +46,7 @@ app.get('/', (req, res) => {
 
 app.post('/', (req, res) => {
     const listId = (new ObjectId()).toString('hex');
-    commandHandler(listId, 'latest', list.createList.bind(null, listId, req.body.listName)).then(
+    commandHandler(listId, 'latest', list.commandHandlers.createList.bind(null, list.createList(listId, req.body.listName))).then(
         () => {
             res.redirect(`/`);
         }, (err) => {
