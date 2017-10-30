@@ -1,0 +1,1 @@
+* [ ] Break command queue out to store listener which operates independently of redux flow

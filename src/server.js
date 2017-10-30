@@ -34,6 +34,7 @@ const app = express();
 app.set('views', './src/pages');
 app.set('view engine', 'jade');
 app.use(bodyParser.urlencoded({extended: false}));
+app.use(bodyParser.json());
 app.use(express.static('./dist'));
 
 app.get('/', (req, res) => {
@@ -64,6 +65,28 @@ app.get('/:listId/events', (req, res) => {
     loadListEvents(connection, req.params.listId, req.query.fromVersion || 1, req.query.toVersion || 'latest')
         .then((eventRecords) => res.json(eventRecords))
         .catch((err) => res.json(err));
+});
+
+app.post('/:listId/commands', (req, res) => {
+    let {clientVersion, command} = req.body;
+    let listId = req.params.listId;
+    commandHandler(listId, clientVersion, list.commandHandlers[command.type].bind(null, command)).then((event) => {
+        res.json({type:'success', event: event});
+    }).catch((err) => {
+        if (err instanceof String) {
+            res.json({type: 'domainError', code: err})
+        } else {
+            if (err.code === 'ER_DUP_ENTRY') {
+                loadListEvents(connection, listId, clientVersion + 1, 'latest').then((eventRecords) => {
+                    res.json({type: 'outOfDate', missingEvents: eventRecords.map((event) => event.eventData)});
+                }).catch((err) => {
+                    res.json({type: 'sqlError', sqlError: err});
+                })
+            } else {
+                res.json({type: 'sqlError', sqlError: err});
+            }
+        }
+    });
 });
 
 app.listen(3000, () => {

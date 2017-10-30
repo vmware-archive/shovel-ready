@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default class App extends React.Component {
+export default class App extends React.PureComponent {
     render() {
         const {list, ui} = this.props;
 
