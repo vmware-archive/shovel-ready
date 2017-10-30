@@ -46,9 +46,10 @@ const render = (commands, events, uiState) => {
     };
 
     const onNewTaskSubmit = () => {
-        const validationState = events.reduce((validationState, event) =>
-            list.handlers[event.type](event, validationState),
-            list.emptyState());
+        const validationState = events.reduce(
+            (validationState, event) => list.eventHandlers[event.type](event, validationState),
+            list.emptyState()
+        );
         const addItemCommand = list.addItem({id: guid(), name: uiState.newTaskName});
         const {type, v} = list.commandHandlers.addItem(addItemCommand, validationState);
         if (type === 'ok') {
@@ -59,13 +60,15 @@ const render = (commands, events, uiState) => {
         }
     };
 
-    let viewState = events.concat(commands.map(t => t[1])).reduce((viewState, event) => {
-        return viewStateHandlers[event.type](event, viewState);
-    }, emptyViewState);
+    let viewState = events.concat(commands.map(t => t[1])).reduce(
+        (viewState, event) => viewStateHandlers[event.type](event, viewState),
+        emptyViewState
+    );
 
     ReactDOM.render(
         <App list={viewState} ui={uiState} onNewTaskInput={onNewTaskInput} onNewTaskSubmit={onNewTaskSubmit} />,
-        document.getElementById('root'));
+        document.getElementById('root')
+    );
     console.timeEnd('render');
 }
 

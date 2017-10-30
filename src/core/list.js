@@ -48,7 +48,26 @@ export function addItem(item) {
     }
 }
 
-// ADD OTHER COMMANDS HERE
+export function removeItem(itemId) {
+    return {
+        type: 'removeItem',
+        itemId,
+    }
+}
+
+export function completeItem(itemId) {
+    return {
+        type: 'completeItem',
+        itemId,
+    }
+}
+
+export function uncompleteItem(itemId) {
+    return {
+        type: 'uncompleteItem',
+        itemId,
+    }
+}
 
 /*                events                 */
 export function listCreated(listId, listName) {
@@ -87,9 +106,9 @@ export function itemUncompleted(itemId) {
     }
 }
 
-/*               handlers                */
+/*             event handlers            */
 
-export const handlers = {
+export const eventHandlers = {
     listCreated: (event, state) => ({...state, created: true}),
     itemAdded: (event, state) => ({...state, itemIds: state.itemIds.concat(event.item.id)}),
     itemRemoved: (event, state) => ({...state, itemIds: state.itemIds.filter((id) => id === event.itemId)}),
@@ -115,7 +134,7 @@ export const commandHandlers = {
         }
         return ok([
             event,
-            handlers.listCreated.bind(null, event),
+            eventHandlers.listCreated.bind(null, event),
         ])
     },
 
@@ -126,14 +145,14 @@ export const commandHandlers = {
         }
         return ok([
             event,
-            handlers.itemAdded.bind(null, event),
+            eventHandlers.itemAdded.bind(null, event),
         ])
     },
 
     removeItem: (command, state) => {
         return ok([
             itemRemoved(command.itemId),
-            handlers.itemRemoved.bind(null, event),
+            eventHandlers.itemRemoved.bind(null, event),
         ])
     },
 
@@ -141,7 +160,7 @@ export const commandHandlers = {
         const event = itemCompleted(command.itemId);
         return ok([
             event,
-            handlers.itemCompleted.bind(null, event),
+            eventHandlers.itemCompleted.bind(null, event),
         ])
     },
 
@@ -149,7 +168,7 @@ export const commandHandlers = {
         const event = itemUncompleted(command.itemId);
         return ok([
             event,
-            handlers.itemUncompleted.bind(null, event),
+            eventHandlers.itemUncompleted.bind(null, event),
         ])
     },
 }

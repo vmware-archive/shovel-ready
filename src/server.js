@@ -26,7 +26,7 @@ const transactionalSideEffects = {
 };
 
 const insertEvent = mysqlMakeInsertEventFn(connection);
-const loadListState = mysqlMakeLoadListStateFn(connection, list.handlers);
+const loadListState = mysqlMakeLoadListStateFn(connection, list.eventHandlers);
 const transactor = makeTransactionMakerFn(connection);
 const commandHandler = makeCommandHandler(loadListState, insertEvent, transactor, transactionalSideEffects);
 
