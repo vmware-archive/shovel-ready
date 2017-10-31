@@ -132,10 +132,7 @@ export const commandHandlers = {
         if (state.created) {
             return err(ERROR_CANNOT_CREATE_ALREADY_CREATED_LIST);
         }
-        return ok([
-            event,
-            eventHandlers.listCreated.bind(null, event),
-        ])
+        return ok(event);
     },
 
     addItem: (command, state) => {
@@ -143,10 +140,7 @@ export const commandHandlers = {
         if (state.itemIds.indexOf(command.item.id) !== -1) {
             return err(ERROR_ITEM_ALREADY_EXISTS);
         }
-        return ok([
-            event,
-            eventHandlers.itemAdded.bind(null, event),
-        ])
+        return ok(event);
     },
 
     removeItem: (command, state) => {
@@ -158,17 +152,11 @@ export const commandHandlers = {
 
     completeItem: (command, state) => {
         const event = itemCompleted(command.itemId);
-        return ok([
-            event,
-            eventHandlers.itemCompleted.bind(null, event),
-        ])
+        return ok(event);
     },
 
     uncompleteItem: (command, state) => {
         const event = itemUncompleted(command.itemId);
-        return ok([
-            event,
-            eventHandlers.itemUncompleted.bind(null, event),
-        ])
+        return ok(event);
     },
 }

@@ -171,7 +171,7 @@ function makeCommandHandler(loadListState, insertEvent, transactor, transactionS
                 let {currentState, currentVersion} = stateResult;
                 let result = action(currentState);
                 if (result.type === 'ok') {
-                    let [event,] = result.v;
+                    let event = result.v;
                     const nextVersion = currentVersion + 1;
                     return insertEvent(listId, nextVersion, event).then(() => {
                         const handlers = transactionSideEffects[event.type] || [];

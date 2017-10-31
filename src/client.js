@@ -113,7 +113,7 @@ function render(store) {
     state.commands.forEach((command) => {
         const {type, v: eventResult} = executeCommand(state, command);
         if (type === 'ok') {
-            let [event,] = eventResult;
+            let event = eventResult;
             viewState = viewStateHandlers[event.type](event, viewState);
         } else {
             console.log('error: ', eventResult);
