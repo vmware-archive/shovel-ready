@@ -129,6 +129,7 @@ function render(store) {
 }
 
 function update(state, action) {
+    console.log(state, action);
     switch (action.type) {
         case 'newTaskInput':
             return {...state, uiState: {...state.uiState, newTaskName: action.newTaskName}};
@@ -162,11 +163,15 @@ function update(state, action) {
                 if (action.events.length === 0) {
                     return state;
                 } else {
-                    return {
-                        ...state,
-                        events: state.events.concat(action.events),
-                        latestVersion: state.latestVersion + action.events.length,
-                    };
+                    if (action.latestVersion > state.latestVersion) {
+                        return {
+                            ...state,
+                            events: state.events.concat(action.events),
+                            latestVersion: action.latestVersion,
+                        };
+                    } else {
+                        return state;
+                    }
                 }
             }
         default:
@@ -180,6 +185,7 @@ function pollForEvents(listId, store) {
             store.dispatch({
                 type: 'eventsReceived',
                 events: eventRecords.map(eventRecord => eventRecord.eventData),
+                latestVersion: eventRecords.length > 0 ? eventRecords[eventRecords.length - 1].listVersion : undefined,
             });
             pollForEvents(listId, store);
         });
