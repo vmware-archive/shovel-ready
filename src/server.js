@@ -71,7 +71,7 @@ app.post('/:listId/commands', (req, res) => {
     let {clientVersion, command} = req.body;
     let listId = req.params.listId;
     commandHandler(listId, clientVersion, list.commandHandlers[command.type].bind(null, command)).then((event) => {
-        res.json({type:'success', event: event});
+        res.json({type: 'success', event: event});
     }).catch((err) => {
         if (err instanceof String) {
             res.json({type: 'domainError', code: err})

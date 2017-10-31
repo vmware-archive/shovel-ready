@@ -9,7 +9,8 @@ export default class App extends React.PureComponent {
                 <span>{list.name}</span>
                 {list.items.map((item) => { return <li key={item.id}>{item.name}</li> })}
                 <form onSubmit={this.onAddItem_}>
-                    <input onInput={this.onTaskInputUpdated_} value={ui.newTaskName || ''} />
+                    <span>{list.items.length}</span>
+                    <input onInput={this.onTaskInputUpdated_} value={ui.newTaskName || ''} data-aid='NewTaskName' />
                     <button>Add item</button>
                 </form>
             </div>
