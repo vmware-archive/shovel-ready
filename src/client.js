@@ -17,58 +17,15 @@ function newTaskInput(newTaskName) {
     }
 }
 
-function executeCommand(state, command) {
-    const validationState = state.events.reduce(
-        (validationState, event) => list.eventHandlers[event.type](event, validationState),
-        list.emptyState()
-    );
-    return list.commandHandlers.addItem(command, validationState);
-}
-
-function newTaskSubmit() {
-    return function (dispatch, getState) {
-        const addItemCommand = list.addItem({id: guid(), name: getState().uiState.newTaskName});
-
-        dispatch({
-            type: 'commandQueued',
-            command: addItemCommand,
-        });
-
-        if (getState().commands.length === 1) {
-            processNextCommand(dispatch, getState);
-        }
-    }
-}
-
-function processNextCommand(dispatch, getState) {
-    if (getState().commands.length >= 1) {
-        const command = getState().commands[0];
-        const {type} = executeCommand(getState(), command);
-
-        if (type === 'ok') {
-            const body = {
-                clientVersion: getState().latestVersion,
-                command: command,
-            };
-
-            return fetch(`/${listId}/commands`, {
-                method: "POST",
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(body)
-            }).then((res) => res.json()).then((resData) => {
-                if (resData.type === 'success') {
-                    dispatch({type: 'commandSuccessfullyExecutedOnServer', event: resData.event});
-                } else if (resData.type === 'outOfDate') {
-                    dispatch({type: 'outOfDate', missingEvents: resData.missingEvents});
-                } else {
-                    dispatch({type: 'commandFailureResponse', err: resData});
-                }
-                processNextCommand(dispatch, getState);
-            });
-        } else {
-            return null;
-        }
-    }
+function newTaskSubmit(state) {
+    const addItemCommand = list.addItem({id: guid(), name: state.uiState.newTaskName});
+    window.requestAnimationFrame(() => {
+        document.querySelector('[data-aid=NewTaskName]').scrollIntoView();
+    });
+    return {
+        type: 'commandQueued',
+        command: addItemCommand,
+    };
 }
 
 function guid() {
@@ -105,22 +62,27 @@ function loadListEvents(listId, fromVersion = 1, toVersion = 'latest') {
 function render(store) {
     console.time('render');
     const state = store.getState();
-    console.log('state', state);
     let viewState = state.events.reduce(
         (viewState, event) => viewStateHandlers[event.type](event, viewState),
         emptyViewState
     );
-    state.commands.forEach((command) => {
-        const {type, v: eventResult} = executeCommand(state, command);
+    let validationState = state.events.reduce(
+        (validationState, event) => list.eventHandlers[event.type](event, validationState),
+        list.emptyState()
+    );
+    for (let i = 0; i < state.commands.length; i++) {
+        const {type, v: eventResult} = list.commandHandlers.addItem(state.commands[0], validationState);
         if (type === 'ok') {
             let event = eventResult;
             viewState = viewStateHandlers[event.type](event, viewState);
+            validationState = list.eventHandlers[event.type](event, validationState);
         } else {
             console.log('error: ', eventResult);
+            break;
         }
-    });
+    }
     const onNewTaskInput = (newTaskName) => store.dispatch(newTaskInput(newTaskName));
-    const onNewTaskSubmit = () => store.dispatch(newTaskSubmit());
+    const onNewTaskSubmit = () => store.dispatch(newTaskSubmit(store.getState()));
     ReactDOM.render(
         <App list={viewState} ui={state.uiState} onNewTaskInput={onNewTaskInput} onNewTaskSubmit={onNewTaskSubmit} />,
         document.getElementById('root')
@@ -189,7 +151,52 @@ function pollForEvents(listId, store) {
             });
             pollForEvents(listId, store);
         });
-    }, 5000);
+    }, 1000);
+}
+
+function executeCommand(state, command) {
+    const validationState = state.events.reduce(
+        (validationState, event) => list.eventHandlers[event.type](event, validationState),
+        list.emptyState()
+    );
+    return list.commandHandlers.addItem(command, validationState);
+}
+
+function processCommands(listId, store) {
+    let processingCommands = false;
+    const processNextCommand = () => {
+        if (store.getState().commands.length >= 1 && !processingCommands) {
+            processingCommands = true;
+            const command = store.getState().commands[0];
+            const {type} = executeCommand(store.getState(), command);
+
+            if (type === 'ok') {
+                const body = {
+                    clientVersion: store.getState().latestVersion,
+                    command: command,
+                };
+
+                return fetch(`/${listId}/commands`, {
+                    method: "POST",
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(body)
+                }).then((res) => res.json()).then((resData) => {
+                    if (resData.type === 'success') {
+                        store.dispatch({type: 'commandSuccessfullyExecutedOnServer', event: resData.event});
+                    } else if (resData.type === 'outOfDate') {
+                        store.dispatch({type: 'outOfDate', missingEvents: resData.missingEvents});
+                    } else {
+                        store.dispatch({type: 'commandFailureResponse', err: resData});
+                    }
+                    processingCommands = false;
+                    processNextCommand();
+                });
+            } else {
+                return null;
+            }
+        }
+    };
+    store.subscribe(processNextCommand);
 }
 
 loadListEvents(listId, 1, 'latest').then((eventRecords) => {
@@ -207,5 +214,7 @@ loadListEvents(listId, 1, 'latest').then((eventRecords) => {
     );
     store.subscribe(render.bind(null, store));
     render(store);
+    processCommands(listId, store);
     pollForEvents(listId, store);
+    window.appStore = store;
 });
