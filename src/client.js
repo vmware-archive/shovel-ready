@@ -19,9 +19,6 @@ function newTaskInput(newTaskName) {
 
 function newTaskSubmit(state) {
     const addItemCommand = list.addItem({id: guid(), name: state.uiState.newTaskName});
-    window.requestAnimationFrame(() => {
-        document.querySelector('[data-aid=NewTaskName]').scrollIntoView();
-    });
     return {
         type: 'commandQueued',
         command: addItemCommand,
