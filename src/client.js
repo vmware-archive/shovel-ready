@@ -5,6 +5,7 @@ import ReactDOM from 'react-dom';
 import App from './components/app';
 
 import * as list from './core/list';
+import * as serverSync from './server_sync';
 
 const url = window.location.href;
 const lastSlashIndex = url.lastIndexOf('/');
@@ -39,10 +40,10 @@ const viewStateHandlers = {
     listCreated: (event, state) => {
         return {...state, name: event.listName};
     },
-    itemAdded: (event, state) => {
-        return {...state, items: state.items.concat(event.item)};
+    itemAdded: (event, state, pending = false) => {
+        return {...state, items: state.items.concat({...event.item, pending: pending})};
     },
-    itemRemoved: (event, state) => {
+    itemRemoved: (event, state, pending = false) => {
         return {...state, items: state.items.filter((item) => item.id === event.itemId)};
     }
 };
@@ -56,162 +57,97 @@ function loadListEvents(listId, fromVersion = 1, toVersion = 'latest') {
     return fetch(`/${listId}/events?fromVersion=${fromVersion}&toVersion=${toVersion}`).then((res) => res.json())
 }
 
-function render(store) {
-    console.time('render');
-    const state = store.getState();
-    let viewState = state.events.reduce(
-        (viewState, event) => viewStateHandlers[event.type](event, viewState),
-        emptyViewState
-    );
-    let validationState = state.events.reduce(
-        (validationState, event) => list.eventHandlers[event.type](event, validationState),
-        list.emptyState()
-    );
-    for (let i = 0; i < state.commands.length; i++) {
-        const {type, v: eventResult} = list.commandHandlers.addItem(state.commands[0], validationState);
+function handleCommands(commands, validationState, viewState) {
+    for (let i = 0; i < commands.length; i++) {
+        const {type, v: eventResult} = list.commandHandlers.addItem(commands[i], validationState);
         if (type === 'ok') {
-            let event = eventResult;
-            viewState = viewStateHandlers[event.type](event, viewState);
+            const event = eventResult;
+            viewState = viewStateHandlers[event.type](event, viewState, true);
             validationState = list.eventHandlers[event.type](event, validationState);
         } else {
             console.log('error: ', eventResult);
             break;
         }
     }
-    const onNewTaskInput = (newTaskName) => store.dispatch(newTaskInput(newTaskName));
-    const onNewTaskSubmit = () => store.dispatch(newTaskSubmit(store.getState()));
-    ReactDOM.render(
-        <App list={viewState} ui={state.uiState} onNewTaskInput={onNewTaskInput} onNewTaskSubmit={onNewTaskSubmit} />,
-        document.getElementById('root')
-    );
-    console.timeEnd('render');
+    return viewState;
+}
+
+function renderUI(store) {
+    let prevState = -1;
+    const render = () => {
+        console.time('render');
+        const state = store.getState();
+        if (state !== prevState) {
+            prevState = state;
+            let viewState = list.buildState(viewStateHandlers, serverSync.events(state.serverSync), emptyViewState);
+            let validationState = list.buildState(list.eventHandlers, serverSync.events(state.serverSync), list.emptyState());
+            const commands = serverSync.commands(state.serverSync);
+            viewState = handleCommands(commands, validationState, viewState);
+            const onNewTaskInput = (newTaskName) => store.dispatch(newTaskInput(newTaskName));
+            const onNewTaskSubmit = () => store.dispatch(newTaskSubmit(store.getState()));
+            ReactDOM.render(
+                <App list={viewState} ui={state.uiState} onNewTaskInput={onNewTaskInput}
+                     onNewTaskSubmit={onNewTaskSubmit}/>,
+                document.getElementById('root')
+            );
+            console.timeEnd('render');
+        } else {
+            console.log('not rendering because nothing changed');
+        }
+    };
+    store.subscribe(render);
+    render();
 }
 
 function update(state, action) {
     console.log(state, action);
+    const nextUiState = handleUiAction(state.uiState, action);
+    const nextServerSyncState = serverSync.handleAction(state.serverSync, action);
+    if (state.uiState !== nextUiState || state.serverSync !== nextServerSyncState) {
+        return {
+            ...state,
+            uiState: nextUiState,
+            serverSync: nextServerSyncState,
+        };
+    } else {
+        return state;
+    }
+}
+
+function handleUiAction(uiState, action) {
     switch (action.type) {
         case 'newTaskInput':
-            return {...state, uiState: {...state.uiState, newTaskName: action.newTaskName}};
+            return {...uiState, newTaskName: action.newTaskName};
 
         case 'commandQueued':
             switch(action.command.type) {
                 case 'addItem':
-                    return {
-                        ...state,
-                        uiState: {...state.uiState, newTaskName: ''},
-                        commands: state.commands.concat([action.command])
-                    };
+                    return {...uiState, newTaskName: ''};
+                default:
+                    return uiState;
             }
-        case 'commandSuccessfullyExecutedOnServer':
-            return {
-                ...state,
-                events: state.events.concat([action.event]),
-                commands: state.commands.slice(1),
-                latestVersion: state.latestVersion + 1,
-            };
-        case 'outOfDate':
-            return {
-                ...state,
-                events: state.events.concat(action.missingEvents),
-                latestVersion: state.latestVersion + action.missingEvents.length,
-            };
-        case 'eventsReceived':
-            if(state.commands.length > 0) {
-                return state;
-            } else {
-                if (action.events.length === 0) {
-                    return state;
-                } else {
-                    if (action.latestVersion > state.latestVersion) {
-                        return {
-                            ...state,
-                            events: state.events.concat(action.events),
-                            latestVersion: action.latestVersion,
-                        };
-                    } else {
-                        return state;
-                    }
-                }
-            }
+
         default:
-            return state;
+            return uiState;
     }
-}
-
-function pollForEvents(listId, store) {
-    setTimeout(() => {
-        loadListEvents(listId, store.getState().latestVersion + 1).then((eventRecords) => {
-            store.dispatch({
-                type: 'eventsReceived',
-                events: eventRecords.map(eventRecord => eventRecord.eventData),
-                latestVersion: eventRecords.length > 0 ? eventRecords[eventRecords.length - 1].listVersion : undefined,
-            });
-            pollForEvents(listId, store);
-        });
-    }, 1000);
-}
-
-function executeCommand(state, command) {
-    const validationState = state.events.reduce(
-        (validationState, event) => list.eventHandlers[event.type](event, validationState),
-        list.emptyState()
-    );
-    return list.commandHandlers.addItem(command, validationState);
-}
-
-function processCommands(listId, store) {
-    let processingCommands = false;
-    const processNextCommand = () => {
-        if (store.getState().commands.length >= 1 && !processingCommands) {
-            processingCommands = true;
-            const command = store.getState().commands[0];
-            const {type} = executeCommand(store.getState(), command);
-
-            if (type === 'ok') {
-                const body = {
-                    clientVersion: store.getState().latestVersion,
-                    command: command,
-                };
-
-                return fetch(`/${listId}/commands`, {
-                    method: "POST",
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(body)
-                }).then((res) => res.json()).then((resData) => {
-                    if (resData.type === 'success') {
-                        store.dispatch({type: 'commandSuccessfullyExecutedOnServer', event: resData.event});
-                    } else if (resData.type === 'outOfDate') {
-                        store.dispatch({type: 'outOfDate', missingEvents: resData.missingEvents});
-                    } else {
-                        store.dispatch({type: 'commandFailureResponse', err: resData});
-                    }
-                    processingCommands = false;
-                    processNextCommand();
-                });
-            } else {
-                return null;
-            }
-        }
-    };
-    store.subscribe(processNextCommand);
 }
 
 loadListEvents(listId, 1, 'latest').then((eventRecords) => {
     const store = createStore(
         update,
         {
-            commands: [],
-            events: eventRecords.map(eventRecord => eventRecord.eventData),
-            latestVersion: eventRecords[eventRecords.length - 1].listVersion,
+            serverSync: serverSync.init(
+                [],
+                eventRecords.map(eventRecord => eventRecord.eventData),
+                eventRecords[eventRecords.length - 1].listVersion
+            ),
             uiState: {}
         },
         applyMiddleware(
             thunkMiddleware,
         )
     );
-    store.subscribe(render.bind(null, store));
-    render(store);
-    processCommands(listId, store);
-    pollForEvents(listId, store);
-    window.appStore = store;
+    renderUI(store);
+    serverSync.syncWithServer(listId, store, (store) => store.getState().serverSync, loadListEvents);
+    window.store = store;
 });

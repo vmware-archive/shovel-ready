@@ -18,7 +18,6 @@ export const ERROR_ITEM_ALREADY_EXISTS = 'item_already_exists';
 /*                 tools                  */
 export function buildState(handlers, events, currentState) {
     console.time('buildState');
-    console.log('currentState', currentState);
     const nextState = events.reduce((state, event) => {
         const handler = handlers[event.type];
         if (handler) {
