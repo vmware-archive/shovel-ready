@@ -1,7 +1,7 @@
 import { createStore, applyMiddleware } from 'redux';
 import thunkMiddleware from 'redux-thunk'
-import React from 'react';
-import ReactDOM from 'react-dom';
+import * as React from 'react';
+import * as ReactDOM from 'react-dom';
 import App from './components/app';
 
 import * as list from './core/list';
@@ -49,6 +49,8 @@ const viewStateHandlers = {
 };
 
 const emptyViewState = {
+    created: false,
+    itemIds: [],
     name: 'Unknown',
     items: [],
 };
@@ -57,16 +59,30 @@ function loadListEvents(listId, fromVersion = 1, toVersion = 'latest') {
     return fetch(`/${listId}/events?fromVersion=${fromVersion}&toVersion=${toVersion}`).then((res) => res.json())
 }
 
-function handleCommands(commands, validationState, viewState) {
+function handleCommands(commands: list.Command[], validationState: list.ValidationState, viewState) {
     for (let i = 0; i < commands.length; i++) {
-        const {type, v: eventResult} = list.commandHandlers.addItem(commands[i], validationState);
-        if (type === 'ok') {
-            const event = eventResult;
-            viewState = viewStateHandlers[event.type](event, viewState, true);
-            validationState = list.eventHandlers[event.type](event, validationState);
-        } else {
-            console.log('error: ', eventResult);
-            break;
+        let command = commands[i];
+        switch (command.type) {
+            case "addItem": 
+                const {type, value: eventResult} = list.commandHandlers.addItem(command, validationState);
+                switch(type) {
+                    case 'ok':
+                        const event = eventResult;
+                        viewState = viewStateHandlers[event.type](event, viewState, true);
+                        validationState = list.eventHandlers[event.type](event, validationState);
+                        break;
+                    case 'err':
+                        console.log('error: ', eventResult);
+                        break;
+                }
+                if (type === 'ok') {
+                    const event = eventResult;
+                    viewState = viewStateHandlers[event.type](event, viewState, true);
+                    validationState = list.eventHandlers[event.type](event, validationState);
+                } else {
+                    break;
+                }        
+                break;
         }
     }
     return viewState;
@@ -149,5 +165,5 @@ loadListEvents(listId, 1, 'latest').then((eventRecords) => {
     );
     renderUI(store);
     serverSync.syncWithServer(listId, store, (store) => store.getState().serverSync, loadListEvents);
-    window.store = store;
+    // window.store = store;
 });

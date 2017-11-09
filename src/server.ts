@@ -1,9 +1,9 @@
-import mysql from 'mysql';
-import express from 'express';
-import bodyParser from 'body-parser';
+import * as mysql from 'mysql';
+import * as express from 'express';
+import * as bodyParser from 'body-parser';
 import * as list from './core/list';
-import dateFormatter from 'date-format';
-import ObjectId from 'node-time-uuid';
+import * as dateFormatter from 'date-format';
+import * as ObjectId from 'node-time-uuid';
 
 const connection = mysql.createConnection({
     connectionLimit: 10,
@@ -13,7 +13,7 @@ const connection = mysql.createConnection({
     database: 'ref_arch_02',
 });
 
-const createList = (event) => {
+const createList = (event: list.ListCreated) => {
     return query(
         connection,
         'INSERT INTO lists VALUES (UNHEX(?), ?)',
@@ -21,7 +21,12 @@ const createList = (event) => {
     );
 };
 
-const transactionalSideEffects = {
+type TransactionalHandler = (event: list.Event, nextVersion: number) => Promise<any>;
+interface TransactionalHandlersMap {
+    [eventName: string]: TransactionalHandler[]
+}
+
+const transactionalSideEffects: TransactionalHandlersMap = {
     listCreated: [createList],
 };
 
@@ -38,7 +43,7 @@ app.use(bodyParser.json());
 app.use(express.static('./dist'));
 
 app.get('/', (req, res) => {
-    query(connection, 'SELECT HEX(listId) AS listId, listName FROM lists').then((results) => {
+    query(connection, 'SELECT HEX(listId) AS listId, listName FROM lists').then(([results, fields]) => {
         res.render('list_index', {list: results});
     }).catch((err) => {
         res.send(err.sqlMessage);
@@ -94,13 +99,13 @@ app.listen(3000, () => {
 });
 
 
-function query(connection, query, values = []) {
+function query(connection, query, values: any[] = []): Promise<any[]> {
     return new Promise((resolve, reject) => {
         connection.query(query, values, (err, results, fields) => {
             if (err) {
                 reject(err);
             } else {
-                resolve(results, fields);
+                resolve([results, fields]);
             }
         });
     });
@@ -132,18 +137,26 @@ function loadListEvents(connection, listId, fromVersion, toVersion) {
             connection,
             'SELECT eventData, listVersion FROM listEvents WHERE listId = UNHEX(?) AND listVersion >= ?',
             [listId, fromVersion]
-        ).then((results) => results.map((result) => ({...result, eventData: JSON.parse(result.eventData)})))
+        ).then(([results, fields]) => results.map(
+            (result) => {
+                if (result.eventData) {
+                    return {...result, eventData: JSON.parse(result.eventData)};                    
+                } else {
+                    return {...result};
+                }
+            }
+        ))
     } else {
         return query(
             connection,
             'SELECT eventData, listVersion FROM listEvents WHERE listId = UNHEX(?) AND listVersion BETWEEN ? AND ?',
             [listId, fromVersion, toVersion]
-        ).then((results) => results.map((result) => ({...result, eventData: JSON.parse(result.eventData)})))
+        ).then(([results, fields]) => results.map((result) => ({...result, eventData: JSON.parse(result.eventData)})))
     }
 }
 
 function makeTransactionMakerFn(connection) {
-    return (action) => {
+    return (action: () => Promise<any>) => {
         return new Promise((resolve, reject) => {
             connection.beginTransaction((err) => {
                 if (err) {
@@ -164,16 +177,24 @@ function makeTransactionMakerFn(connection) {
     }
 }
 
-function makeCommandHandler(loadListState, insertEvent, transactor, transactionSideEffects) {
+interface ServerState {
+    currentState: any;
+    currentVersion: number;
+}
+
+type EventInserter = (listId: string, nextVersion: number, event: list.Event, occurredAt: any) => Promise<any[]>;
+type StateLoader = (listId: string, listVersion: number) => Promise<ServerState>;
+
+function makeCommandHandler(loadListState: StateLoader, insertEvent: EventInserter, transactor, transactionSideEffects: TransactionalHandlersMap) {
     return (listId, listVersion, action) => {
         return transactor(() => {
             return loadListState(listId, listVersion).then((stateResult) => {
                 let {currentState, currentVersion} = stateResult;
                 let result = action(currentState);
                 if (result.type === 'ok') {
-                    let event = result.v;
+                    let event = result.value;
                     const nextVersion = currentVersion + 1;
-                    return insertEvent(listId, nextVersion, event).then(() => {
+                    return insertEvent(listId, nextVersion, event, new Date()).then(() => {
                         const handlers = transactionSideEffects[event.type] || [];
                         const sideEffectPromises = handlers.map((handler) => handler(event, nextVersion));
                         return Promise.all(sideEffectPromises).then(() => event);
