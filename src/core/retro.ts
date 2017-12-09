@@ -1,3 +1,5 @@
+import { ValidationMap } from "react";
+
 export interface CannotCreateAlreadyCreatedRetro {
     type: 'cannot_create_already_created_retro'
 }
@@ -6,6 +8,16 @@ export function cannotCreateAlreadyCreatedRetro(): CannotCreateAlreadyCreatedRet
     return {
         type: 'cannot_create_already_created_retro'
     };
+}
+
+export interface ColumnAlreadyExists {
+    type: "column_already_exists"   
+}
+
+export function columnAlreadyExists(): ColumnAlreadyExists {
+    return {
+        type: "column_already_exists"
+    }
 }
 
 export interface ItemAlreadyExists {
@@ -18,7 +30,7 @@ export function itemAlreadyExists(): ItemAlreadyExists {
     };
 }
 
-export type CommandErrorType = ItemAlreadyExists | CannotCreateAlreadyCreatedRetro;
+export type CommandErrorType = ItemAlreadyExists | ColumnAlreadyExists | CannotCreateAlreadyCreatedRetro
 
 export type CommandHandlerResponse = Result<Event, CommandErrorType>
 
@@ -37,11 +49,13 @@ export interface Err<T> {
 export interface ValidationState {
     created: boolean,
     itemIds: string[],
+    columnIds: string[],
 }
 
 export interface ViewState {
     name: 'Unknown',
     items: any[],
+    columns: any[],
 }
 
 export function ok<O, E>(value: O): Result<O, E> {
@@ -174,7 +188,7 @@ export function uncompleteItem(itemId: string): UncompleteItem {
     }
 }
 
-export type Command = CreateRetro | AddItem | RemoveItem | CompleteItem | UncompleteItem;
+export type Command = CreateRetro | AddColumn | RemoveColumn | AddItem | RemoveItem | CompleteItem | UncompleteItem;
 
 
 /*                events                 */
@@ -207,11 +221,22 @@ export function columnAdded(id: string, name: string): ColumnAdded {
     }
 }
 
+export interface ColumnRemoved {
+    type: "columnRemoved",
+    id: string,
+}
+
+export function columnRemoved(id: string): ColumnRemoved{
+    return {
+        type: "columnRemoved",
+        id,
+    }
+}
+
 export interface ItemAdded {
     type: "itemAdded",
     item: any,
 }
-
 
 export function itemAdded(item: string): ItemAdded {
     return {
@@ -256,7 +281,7 @@ export function itemUncompleted(itemId: string): ItemUncompleted {
     }
 }
 
-export type Event = RetroCreated | ItemAdded | ItemRemoved | ItemCompleted | ItemUncompleted;
+export type Event = RetroCreated | ColumnAdded | ColumnRemoved | ItemAdded | ItemRemoved | ItemCompleted | ItemUncompleted;
 
 /*             event handlers            */
 
@@ -270,6 +295,18 @@ export interface HandlersMap {
 
 export const eventHandlers:HandlerMap = {
     retroCreated: (event, state) => ({...state, created: true}),
+    columnAdded: (event, state) => (
+        {
+            ...state, 
+            columnIds: state.columnIds.concat(event.id)
+        }
+    ),
+    columnRemoved: (event, state) => (
+        {
+            ...state, 
+            columnIds: state.columnIds.filter((id) => id === event.id)
+        }
+    ),
     itemAdded: (event, state) => ({...state, itemIds: state.itemIds.concat(event.item.id)}),
     itemRemoved: (event, state) => ({...state, itemIds: state.itemIds.filter((id) => id === event.itemId)}),
     itemCompleted: noopHandler,
@@ -280,6 +317,7 @@ export const eventHandlers:HandlerMap = {
 export function emptyState():ValidationState {
     return {
         created: false,
+        columnIds: [],
         itemIds: []
     }
 }
@@ -292,6 +330,18 @@ export const commandHandlers = {
             return err(cannotCreateAlreadyCreatedRetro());
         }
         return ok(event);
+    },
+
+    addColumn: (command: AddColumn, state: ValidationState): CommandHandlerResponse => {
+        const event = columnAdded(command.id, command.name);
+        if (state.columnIds.indexOf(command.id) !== -1) {
+            return err(columnAlreadyExists());
+        }
+        return ok(event);
+    },
+
+    removeColumn: (command: RemoveColumn, state: ValidationState): CommandHandlerResponse => {
+        return ok(columnRemoved(command.id));
     },
 
     addItem: (command: AddItem, state: ValidationState): CommandHandlerResponse => {

@@ -26,6 +26,7 @@ export function handleAction(state, action) {
         case 'commandQueued':
             switch (action.command.type) {
                 case 'addItem':
+                case 'addColumn':
                     return {
                         ...state,
                         commands: state.commands.concat([action.command])
@@ -81,7 +82,12 @@ function pollForEvents(retroId, store, fetchSyncState, fetchEvents) {
 
 function executeCommand(state, command) {
     const validationState = retro.buildValidationState(retro.eventHandlers, state.events, retro.emptyState());
-    return retro.commandHandlers.addItem(command, validationState);
+
+    if (command.type === 'addItem') {
+        return retro.commandHandlers.addItem(command, validationState);
+    } else if (command.type === 'addColumn') {
+        return retro.commandHandlers.addColumn(command, validationState);
+    }
 }
 
 function processCommands(retroId, store, fetchSyncState) {

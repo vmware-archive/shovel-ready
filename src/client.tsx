@@ -11,6 +11,21 @@ const url = window.location.href;
 const lastSlashIndex = url.lastIndexOf('/');
 const retroId = url.substring(lastSlashIndex + 1);
 
+function newColumnInput(newColumnName) {
+    return {
+        type: 'newColumnInput',
+        newColumnName,
+    }
+}
+
+function newColumnSubmit(state) {
+    const addColumnCommand = retro.addColumn(guid(), state.uiState.newColumnName);
+    return {
+        type: 'commandQueued',
+        command: addColumnCommand,
+    };
+}
+
 function newTaskInput(newTaskName) {
     return {
         type: 'newTaskInput',
@@ -40,6 +55,13 @@ const viewStateHandlers = {
     retroCreated: (event, state) => {
         return {...state, name: event.retroName};
     },
+    columnAdded: (event, state, pending = false) => {
+        let nextState:any = {...state, columns: state.columns.concat({name: event.name, pending: pending})};
+        return nextState;
+    },
+    columnRemoved: (event, state, pending = false) => {
+        return {...state, columns: state.columns.filter((name) => name === event.name)};
+    },
     itemAdded: (event, state, pending = false) => {
         return {...state, items: state.items.concat({...event.item, pending: pending})};
     },
@@ -51,7 +73,8 @@ const viewStateHandlers = {
 function emptyViewState(): retro.ViewState {
     return {
         name: 'Unknown',
-        items: []
+        items: [],
+        columns: [],
     }
 }
 
@@ -62,27 +85,29 @@ function loadRetroEvents(retroId, fromVersion = 1, toVersion = 'latest') {
 function handleCommands(commands: retro.Command[], validationState: retro.ValidationState, viewState) {
     for (let i = 0; i < commands.length; i++) {
         let command = commands[i];
+        let response: retro.CommandHandlerResponse | null;
+
         switch (command.type) {
             case "addItem": 
-                const {type, value: eventResult} = retro.commandHandlers.addItem(command, validationState);
-                switch(type) {
-                    case 'ok':
-                        const event = eventResult;
-                        viewState = viewStateHandlers[event.type](event, viewState, true);
-                        validationState = retro.eventHandlers[event.type](event, validationState);
-                        break;
-                    case 'err':
-                        console.log('error: ', eventResult);
-                        break;
-                }
-                if (type === 'ok') {
-                    const event = eventResult;
+                response = retro.commandHandlers.addItem(command, validationState);
+                break;
+            case "addColumn":
+                response = retro.commandHandlers.addColumn(command, validationState);
+                break;
+            default:
+                response = null;
+        }
+        if (response) {
+            switch(response.type) {
+                case 'ok':
+                    const event = response.value;
                     viewState = viewStateHandlers[event.type](event, viewState, true);
                     validationState = retro.eventHandlers[event.type](event, validationState);
-                } else {
                     break;
-                }        
-                break;
+                case 'err':
+                    console.log('error: ', response.value);
+                    break;
+            }
         }
     }
     return viewState;
@@ -101,9 +126,15 @@ function renderUI(store) {
             viewState = handleCommands(commands, validationState, viewState);
             const onNewTaskInput = (newTaskName) => store.dispatch(newTaskInput(newTaskName));
             const onNewTaskSubmit = () => store.dispatch(newTaskSubmit(store.getState()));
+            const onNewColumnInput = (newColumnName) => store.dispatch(newColumnInput(newColumnName));
+            const onNewColumnSubmit = () => store.dispatch(newColumnSubmit(store.getState()));
             ReactDOM.render(
-                <App retro={viewState} ui={state.uiState} onNewTaskInput={onNewTaskInput}
-                     onNewTaskSubmit={onNewTaskSubmit}/>,
+                <App retro={viewState} ui={state.uiState} 
+                    onNewTaskInput={onNewTaskInput}
+                    onNewTaskSubmit={onNewTaskSubmit}
+                    onNewColumnInput={onNewColumnInput}
+                    onNewColumnSubmit={onNewColumnSubmit}
+                    />,
                 document.getElementById('root')
             );
             console.timeEnd('render');
@@ -135,10 +166,15 @@ function handleUiAction(uiState, action) {
         case 'newTaskInput':
             return {...uiState, newTaskName: action.newTaskName};
 
+        case 'newColumnInput':
+            return {...uiState, newColumnName: action.newColumnName};
+
         case 'commandQueued':
             switch(action.command.type) {
                 case 'addItem':
                     return {...uiState, newTaskName: ''};
+                case 'addColumn':
+                    return {...uiState, newColumnName: ''};
                 default:
                     return uiState;
             }

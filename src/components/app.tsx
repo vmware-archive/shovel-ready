@@ -2,14 +2,21 @@ import * as React from 'react';
 
 export interface UIProps {
     newTaskName: string,
+    newColumnName: string,
 }
 
 export interface Retro {
     name: string,
     items: RetroItem[],
+    columns: RetroColumn[],
 }
 
 export interface RetroItem {
+    id: string,
+    name: string,
+}
+
+export interface RetroColumn {
     id: string,
     name: string,
 }
@@ -19,6 +26,8 @@ export interface AppProps {
     ui: UIProps,
     onNewTaskInput: (string) => {},
     onNewTaskSubmit: () => {},
+    onNewColumnInput: (string) => {},
+    onNewColumnSubmit: () => {},
 }
 
 export interface AppState {
@@ -32,6 +41,12 @@ export default class App extends React.PureComponent<AppProps, AppState> {
         return (
             <div>
                 <span>{retro.name}</span>
+                <h1>Columns</h1>
+                { retro.columns.map((column) => { return <div key={column.id}>{column.name}</div> })}
+                <form onSubmit={this.onAddColumn_}>
+                    <input onInput={this.onColumnInputUpdated_} value={ui.newColumnName || ''} data-aid='NewColumnName' />
+                    <button>Add Column</button> 
+                </form>
                 <form onSubmit={this.onAddItem_}>
                     <span>{retro.items.length}</span>
                     <input onInput={this.onTaskInputUpdated_} value={ui.newTaskName || ''} data-aid='NewTaskName' />
@@ -48,6 +63,15 @@ export default class App extends React.PureComponent<AppProps, AppState> {
         } else {
             return null;
         }
+    };
+
+    onColumnInputUpdated_ = (e) => {
+        this.props.onNewColumnInput(e.target.value);
+    };
+
+    onAddColumn_ = (e) => {
+        e.preventDefault();
+        this.props.onNewColumnSubmit();
     };
 
     onTaskInputUpdated_ = (e) => {
