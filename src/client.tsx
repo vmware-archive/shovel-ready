@@ -4,12 +4,12 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import App from './components/app';
 
-import * as list from './core/list';
+import * as retro from './core/retro';
 import * as serverSync from './server_sync';
 
 const url = window.location.href;
 const lastSlashIndex = url.lastIndexOf('/');
-const listId = url.substring(lastSlashIndex + 1);
+const retroId = url.substring(lastSlashIndex + 1);
 
 function newTaskInput(newTaskName) {
     return {
@@ -19,7 +19,7 @@ function newTaskInput(newTaskName) {
 }
 
 function newTaskSubmit(state) {
-    const addItemCommand = list.addItem({id: guid(), name: state.uiState.newTaskName});
+    const addItemCommand = retro.addItem({id: guid(), name: state.uiState.newTaskName});
     return {
         type: 'commandQueued',
         command: addItemCommand,
@@ -37,8 +37,8 @@ function guid() {
 }
 
 const viewStateHandlers = {
-    listCreated: (event, state) => {
-        return {...state, name: event.listName};
+    retroCreated: (event, state) => {
+        return {...state, name: event.retroName};
     },
     itemAdded: (event, state, pending = false) => {
         return {...state, items: state.items.concat({...event.item, pending: pending})};
@@ -48,28 +48,28 @@ const viewStateHandlers = {
     }
 };
 
-function emptyViewState(): list.ViewState {
+function emptyViewState(): retro.ViewState {
     return {
         name: 'Unknown',
         items: []
     }
 }
 
-function loadListEvents(listId, fromVersion = 1, toVersion = 'latest') {
-    return fetch(`/${listId}/events?fromVersion=${fromVersion}&toVersion=${toVersion}`).then((res) => res.json())
+function loadRetroEvents(retroId, fromVersion = 1, toVersion = 'latest') {
+    return fetch(`/${retroId}/events?fromVersion=${fromVersion}&toVersion=${toVersion}`).then((res) => res.json())
 }
 
-function handleCommands(commands: list.Command[], validationState: list.ValidationState, viewState) {
+function handleCommands(commands: retro.Command[], validationState: retro.ValidationState, viewState) {
     for (let i = 0; i < commands.length; i++) {
         let command = commands[i];
         switch (command.type) {
             case "addItem": 
-                const {type, value: eventResult} = list.commandHandlers.addItem(command, validationState);
+                const {type, value: eventResult} = retro.commandHandlers.addItem(command, validationState);
                 switch(type) {
                     case 'ok':
                         const event = eventResult;
                         viewState = viewStateHandlers[event.type](event, viewState, true);
-                        validationState = list.eventHandlers[event.type](event, validationState);
+                        validationState = retro.eventHandlers[event.type](event, validationState);
                         break;
                     case 'err':
                         console.log('error: ', eventResult);
@@ -78,7 +78,7 @@ function handleCommands(commands: list.Command[], validationState: list.Validati
                 if (type === 'ok') {
                     const event = eventResult;
                     viewState = viewStateHandlers[event.type](event, viewState, true);
-                    validationState = list.eventHandlers[event.type](event, validationState);
+                    validationState = retro.eventHandlers[event.type](event, validationState);
                 } else {
                     break;
                 }        
@@ -95,14 +95,14 @@ function renderUI(store) {
         const state = store.getState();
         if (state !== prevState) {
             prevState = state;
-            let viewState = list.buildViewState(viewStateHandlers, serverSync.events(state.serverSync), emptyViewState());
-            let validationState = list.buildValidationState(list.eventHandlers, serverSync.events(state.serverSync), list.emptyState());
+            let viewState = retro.buildViewState(viewStateHandlers, serverSync.events(state.serverSync), emptyViewState());
+            let validationState = retro.buildValidationState(retro.eventHandlers, serverSync.events(state.serverSync), retro.emptyState());
             const commands = serverSync.commands(state.serverSync);
             viewState = handleCommands(commands, validationState, viewState);
             const onNewTaskInput = (newTaskName) => store.dispatch(newTaskInput(newTaskName));
             const onNewTaskSubmit = () => store.dispatch(newTaskSubmit(store.getState()));
             ReactDOM.render(
-                <App list={viewState} ui={state.uiState} onNewTaskInput={onNewTaskInput}
+                <App retro={viewState} ui={state.uiState} onNewTaskInput={onNewTaskInput}
                      onNewTaskSubmit={onNewTaskSubmit}/>,
                 document.getElementById('root')
             );
@@ -148,14 +148,14 @@ function handleUiAction(uiState, action) {
     }
 }
 
-loadListEvents(listId, 1, 'latest').then((eventRecords) => {
+loadRetroEvents(retroId, 1, 'latest').then((eventRecords) => {
     const store = createStore(
         update,
         {
             serverSync: serverSync.init(
                 [],
                 eventRecords.map(eventRecord => eventRecord.eventData),
-                eventRecords[eventRecords.length - 1].listVersion
+                eventRecords[eventRecords.length - 1].retroVersion
             ),
             uiState: {}
         },
@@ -164,6 +164,6 @@ loadListEvents(listId, 1, 'latest').then((eventRecords) => {
         )
     );
     renderUI(store);
-    serverSync.syncWithServer(listId, store, (store) => store.getState().serverSync, loadListEvents);
+    serverSync.syncWithServer(retroId, store, (store) => store.getState().serverSync, loadRetroEvents);
     // window.store = store;
 });

@@ -1,7 +1,7 @@
 import * as mysql from 'mysql';
 import * as express from 'express';
 import * as bodyParser from 'body-parser';
-import * as list from './core/list';
+import * as retro from './core/retro';
 import * as dateFormatter from 'date-format';
 import * as ObjectId from 'node-time-uuid';
 
@@ -13,27 +13,27 @@ const connection = mysql.createConnection({
     database: 'ref_arch_02',
 });
 
-const createList = (event: list.ListCreated) => {
+const createRetro = (event: retro.RetroCreated) => {
     return query(
         connection,
-        'INSERT INTO lists VALUES (UNHEX(?), ?)',
-        [event.listId, event.listName],
+        'INSERT INTO retros VALUES (UNHEX(?), ?)',
+        [event.retroId, event.retroName],
     );
 };
 
-type TransactionalHandler = (event: list.Event, nextVersion: number) => Promise<any>;
+type TransactionalHandler = (event: retro.Event, nextVersion: number) => Promise<any>;
 interface TransactionalHandlersMap {
     [eventName: string]: TransactionalHandler[]
 }
 
 const transactionalSideEffects: TransactionalHandlersMap = {
-    listCreated: [createList],
+    retroCreated: [createRetro],
 };
 
 const insertEvent = mysqlMakeInsertEventFn(connection);
-const loadListState = mysqlMakeLoadListStateFn(connection, list.eventHandlers);
+const loadRetroState = mysqlMakeLoadRetroStateFn(connection, retro.eventHandlers);
 const transactor = makeTransactionMakerFn(connection);
-const commandHandler = makeCommandHandler(loadListState, insertEvent, transactor, transactionalSideEffects);
+const commandHandler = makeCommandHandler(loadRetroState, insertEvent, transactor, transactionalSideEffects);
 
 const app = express();
 app.set('views', './src/pages');
@@ -43,46 +43,46 @@ app.use(bodyParser.json());
 app.use(express.static('./dist'));
 
 app.get('/', (req, res) => {
-    query(connection, 'SELECT HEX(listId) AS listId, listName FROM lists').then(([results, fields]) => {
-        res.render('list_index', {list: results});
+    query(connection, 'SELECT HEX(retroId) AS retroId, retroName FROM retros').then(([results, fields]) => {
+        res.render('retro_index', {retro: results});
     }).catch((err) => {
         res.send(err.sqlMessage);
     });
 });
 
 app.post('/', (req, res) => {
-    const listId = (new ObjectId()).toString('hex');
-    commandHandler(listId, 'latest', list.commandHandlers.createList.bind(null, list.createList(listId, req.body.listName))).then(
+    const retroId = (new ObjectId()).toString('hex');
+    commandHandler(retroId, 'latest', retro.commandHandlers.createRetro.bind(null, retro.createRetro(retroId, req.body.retroName))).then(
         () => {
             res.redirect(`/`);
         }, (err) => {
-            console.log('error creating list: ', err);
+            console.log('error creating retro: ', err);
             res.redirect(`/`);
         }
     );
 });
 
-app.get('/:listId', (req, res) => {
-    res.render('list_show');
+app.get('/:retroId', (req, res) => {
+    res.render('retro_show');
 });
 
-app.get('/:listId/events', (req, res) => {
-    loadListEvents(connection, req.params.listId, req.query.fromVersion || 1, req.query.toVersion || 'latest')
+app.get('/:retroId/events', (req, res) => {
+    loadRetroEvents(connection, req.params.retroId, req.query.fromVersion || 1, req.query.toVersion || 'latest')
         .then((eventRecords) => res.json(eventRecords))
         .catch((err) => res.json(err));
 });
 
-app.post('/:listId/commands', (req, res) => {
+app.post('/:retroId/commands', (req, res) => {
     let {clientVersion, command} = req.body;
-    let listId = req.params.listId;
-    commandHandler(listId, clientVersion, list.commandHandlers[command.type].bind(null, command)).then((event) => {
+    let retroId = req.params.retroId;
+    commandHandler(retroId, clientVersion, retro.commandHandlers[command.type].bind(null, command)).then((event) => {
         res.json({type: 'success', event: event});
     }).catch((err) => {
         if (err instanceof String) {
             res.json({type: 'domainError', code: err})
         } else {
             if (err.code === 'ER_DUP_ENTRY') {
-                loadListEvents(connection, listId, clientVersion + 1, 'latest').then((eventRecords) => {
+                loadRetroEvents(connection, retroId, clientVersion + 1, 'latest').then((eventRecords) => {
                     res.json({type: 'outOfDate', missingEvents: eventRecords.map((event) => event.eventData)});
                 }).catch((err) => {
                     res.json({type: 'sqlError', sqlError: err});
@@ -112,31 +112,31 @@ function query(connection, query, values: any[] = []): Promise<any[]> {
 }
 
 function mysqlMakeInsertEventFn(connection) {
-    return (listId, listVersion, event, occurredAt) => {
+    return (retroId, retroVersion, event, occurredAt) => {
         return query(
             connection,
-            'INSERT INTO listEvents (listId, listVersion, eventData, occurredAt) VALUES (UNHEX(?), ?, ?, ?)',
-            [listId, listVersion, JSON.stringify(event), dateFormatter('yyyy-MM-dd hh:mm:ss', occurredAt)],
+            'INSERT INTO retroEvents (retroId, retroVersion, eventData, occurredAt) VALUES (UNHEX(?), ?, ?, ?)',
+            [retroId, retroVersion, JSON.stringify(event), dateFormatter('yyyy-MM-dd hh:mm:ss', occurredAt)],
         );
     };
 }
 
-function mysqlMakeLoadListStateFn(connection, handlers) {
-    return (listId, listVersion) => {
-        return loadListEvents(connection, listId, 1, listVersion).then((eventRecords) => {
-            const maxVersion = eventRecords.length > 0 ? eventRecords[eventRecords.length - 1].listVersion : 0;
-            const state = list.buildValidationState(handlers, eventRecords.map((e) => e.eventData), list.emptyState());
+function mysqlMakeLoadRetroStateFn(connection, handlers) {
+    return (retroId, retroVersion) => {
+        return loadRetroEvents(connection, retroId, 1, retroVersion).then((eventRecords) => {
+            const maxVersion = eventRecords.length > 0 ? eventRecords[eventRecords.length - 1].retroVersion : 0;
+            const state = retro.buildValidationState(handlers, eventRecords.map((e) => e.eventData), retro.emptyState());
             return {currentState: state, currentVersion: maxVersion};
         });
     };
 }
 
-function loadListEvents(connection, listId, fromVersion, toVersion) {
+function loadRetroEvents(connection, retroId, fromVersion, toVersion) {
     if (toVersion === 'latest') {
         return query(
             connection,
-            'SELECT eventData, listVersion FROM listEvents WHERE listId = UNHEX(?) AND listVersion >= ?',
-            [listId, fromVersion]
+            'SELECT eventData, retroVersion FROM retroEvents WHERE retroId = UNHEX(?) AND retroVersion >= ?',
+            [retroId, fromVersion]
         ).then(([results, fields]) => results.map(
             (result) => {
                 if (result.eventData) {
@@ -149,8 +149,8 @@ function loadListEvents(connection, listId, fromVersion, toVersion) {
     } else {
         return query(
             connection,
-            'SELECT eventData, listVersion FROM listEvents WHERE listId = UNHEX(?) AND listVersion BETWEEN ? AND ?',
-            [listId, fromVersion, toVersion]
+            'SELECT eventData, retroVersion FROM retroEvents WHERE retroId = UNHEX(?) AND retroVersion BETWEEN ? AND ?',
+            [retroId, fromVersion, toVersion]
         ).then(([results, fields]) => results.map((result) => ({...result, eventData: JSON.parse(result.eventData)})))
     }
 }
@@ -182,19 +182,19 @@ interface ServerState {
     currentVersion: number;
 }
 
-type EventInserter = (listId: string, nextVersion: number, event: list.Event, occurredAt: any) => Promise<any[]>;
-type StateLoader = (listId: string, listVersion: number) => Promise<ServerState>;
+type EventInserter = (retroId: string, nextVersion: number, event: retro.Event, occurredAt: any) => Promise<any[]>;
+type StateLoader = (retroId: string, retroVersion: number) => Promise<ServerState>;
 
-function makeCommandHandler(loadListState: StateLoader, insertEvent: EventInserter, transactor, transactionSideEffects: TransactionalHandlersMap) {
-    return (listId, listVersion, action) => {
+function makeCommandHandler(loadRetroState: StateLoader, insertEvent: EventInserter, transactor, transactionSideEffects: TransactionalHandlersMap) {
+    return (retroId, retroVersion, action) => {
         return transactor(() => {
-            return loadListState(listId, listVersion).then((stateResult) => {
+            return loadRetroState(retroId, retroVersion).then((stateResult) => {
                 let {currentState, currentVersion} = stateResult;
                 let result = action(currentState);
                 if (result.type === 'ok') {
                     let event = result.value;
                     const nextVersion = currentVersion + 1;
-                    return insertEvent(listId, nextVersion, event, new Date()).then(() => {
+                    return insertEvent(retroId, nextVersion, event, new Date()).then(() => {
                         const handlers = transactionSideEffects[event.type] || [];
                         const sideEffectPromises = handlers.map((handler) => handler(event, nextVersion));
                         return Promise.all(sideEffectPromises).then(() => event);

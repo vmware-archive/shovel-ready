@@ -1,10 +1,10 @@
-export interface CannotCreateAlreadyCreatedList {
-    type: 'cannot_create_already_created_list'
+export interface CannotCreateAlreadyCreatedRetro {
+    type: 'cannot_create_already_created_retro'
 }
 
-export function cannotCreateAlreadyCreatedList(): CannotCreateAlreadyCreatedList {
+export function cannotCreateAlreadyCreatedRetro(): CannotCreateAlreadyCreatedRetro {
     return {
-        type: 'cannot_create_already_created_list'
+        type: 'cannot_create_already_created_retro'
     };
 }
 
@@ -18,7 +18,7 @@ export function itemAlreadyExists(): ItemAlreadyExists {
     };
 }
 
-export type CommandErrorType = ItemAlreadyExists | CannotCreateAlreadyCreatedList;
+export type CommandErrorType = ItemAlreadyExists | CannotCreateAlreadyCreatedRetro;
 
 export type CommandHandlerResponse = Result<Event, CommandErrorType>
 
@@ -86,17 +86,43 @@ export function buildValidationState(handlers: HandlerMap, events: Event[], curr
 }
 
 /*               commands                */
-export interface CreateList {
-    type: "createList",
-    listId: string,
-    listName: string,
+export interface CreateRetro {
+    type: "createRetro",
+    retroId: string,
+    retroName: string,
 }
 
-export function createList(listId: string, listName: string): CreateList {
+export function createRetro(retroId: string, retroName: string): CreateRetro {
     return {
-        type: "createList",
-        listId,
-        listName,
+        type: "createRetro",
+        retroId,
+        retroName,
+    }
+}
+
+export interface AddColumn {
+    type: "addColumn",
+    id: string,
+    name: string
+}
+
+export function addColumn(id: string, name: string): AddColumn {
+    return {
+        type: "addColumn",
+        id,
+        name
+    }
+}
+
+export interface RemoveColumn {
+    type: "removeColumn",
+    id: string,
+}
+
+export function removeColumn(id: string): RemoveColumn {
+    return {
+        type: "removeColumn",
+        id
     }
 }
 
@@ -148,22 +174,36 @@ export function uncompleteItem(itemId: string): UncompleteItem {
     }
 }
 
-export type Command = CreateList | AddItem | RemoveItem | CompleteItem | UncompleteItem;
+export type Command = CreateRetro | AddItem | RemoveItem | CompleteItem | UncompleteItem;
 
 
 /*                events                 */
 
-export interface ListCreated {
-    type: "listCreated",
-    listId: string,
-    listName: string,
+export interface RetroCreated {
+    type: "retroCreated",
+    retroId: string,
+    retroName: string,
 }
 
-export function listCreated(listId: string, listName: string): ListCreated {
+export function retroCreated(retroId: string, retroName: string): RetroCreated {
     return {
-        type: "listCreated",
-        listId,
-        listName,
+        type: "retroCreated",
+        retroId,
+        retroName,
+    }
+}
+
+export interface ColumnAdded {
+    type: "columnAdded",
+    id: string,
+    name: string,
+}
+
+export function columnAdded(id: string, name: string): ColumnAdded {
+    return {
+        type: "columnAdded",
+        id,
+        name
     }
 }
 
@@ -216,7 +256,7 @@ export function itemUncompleted(itemId: string): ItemUncompleted {
     }
 }
 
-export type Event = ListCreated | ItemAdded | ItemRemoved | ItemCompleted | ItemUncompleted;
+export type Event = RetroCreated | ItemAdded | ItemRemoved | ItemCompleted | ItemUncompleted;
 
 /*             event handlers            */
 
@@ -229,7 +269,7 @@ export interface HandlersMap {
 }
 
 export const eventHandlers:HandlerMap = {
-    listCreated: (event, state) => ({...state, created: true}),
+    retroCreated: (event, state) => ({...state, created: true}),
     itemAdded: (event, state) => ({...state, itemIds: state.itemIds.concat(event.item.id)}),
     itemRemoved: (event, state) => ({...state, itemIds: state.itemIds.filter((id) => id === event.itemId)}),
     itemCompleted: noopHandler,
@@ -246,10 +286,10 @@ export function emptyState():ValidationState {
 
 /*             command handlers             */
 export const commandHandlers = {
-    createList: (command: CreateList, state: ValidationState): CommandHandlerResponse => {
-        const event = listCreated(command.listId, command.listName);
+    createRetro: (command: CreateRetro, state: ValidationState): CommandHandlerResponse => {
+        const event = retroCreated(command.retroId, command.retroName);
         if (state.created) {
-            return err(cannotCreateAlreadyCreatedList());
+            return err(cannotCreateAlreadyCreatedRetro());
         }
         return ok(event);
     },

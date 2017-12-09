@@ -1,0 +1,14 @@
+doctype html
+html(lang='en')
+    head
+        title='Retro'
+    body
+        h1 Retros
+        ol
+            for item in retro
+                li
+                    a(href='/#{item.retroId}')=item.retroName
+        form(method='post')
+            label Retro name
+                input(type='text' name='retroName')
+            input(type='submit')
