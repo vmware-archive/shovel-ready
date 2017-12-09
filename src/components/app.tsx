@@ -1,6 +1,31 @@
 import * as React from 'react';
 
-export default class App extends React.PureComponent<any, any> {
+export interface UIProps {
+    newTaskName: string,
+}
+
+export interface List {
+    name: string,
+    items: ListItem[],
+}
+
+export interface ListItem {
+    id: string,
+    name: string,
+}
+
+export interface AppProps {
+    list: List,
+    ui: UIProps,
+    onNewTaskInput: (string) => {},
+    onNewTaskSubmit: () => {},
+}
+
+export interface AppState {
+    
+}
+
+export default class App extends React.PureComponent<AppProps, AppState> {
     render() {
         const {list, ui} = this.props;
 

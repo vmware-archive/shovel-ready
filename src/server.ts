@@ -125,7 +125,7 @@ function mysqlMakeLoadListStateFn(connection, handlers) {
     return (listId, listVersion) => {
         return loadListEvents(connection, listId, 1, listVersion).then((eventRecords) => {
             const maxVersion = eventRecords.length > 0 ? eventRecords[eventRecords.length - 1].listVersion : 0;
-            const state = list.buildState(handlers, eventRecords.map((e) => e.eventData), list.emptyState());
+            const state = list.buildValidationState(handlers, eventRecords.map((e) => e.eventData), list.emptyState());
             return {currentState: state, currentVersion: maxVersion};
         });
     };

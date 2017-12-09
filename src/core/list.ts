@@ -39,6 +39,11 @@ export interface ValidationState {
     itemIds: string[],
 }
 
+export interface ViewState {
+    name: 'Unknown',
+    items: any[],
+}
+
 export function ok<O, E>(value: O): Result<O, E> {
     return {type: "ok", value}
 }
@@ -52,8 +57,8 @@ export function noopHandler(event: Event, state: ValidationState): ValidationSta
 }
 
 /*                 tools                  */
-export function buildState(handlers: HandlerMap, events: Event[], currentState: ValidationState): ValidationState {
-    console.time('buildState');
+export function buildViewState(handlers: HandlerMap, events: Event[], currentState: ViewState): ViewState {
+    console.time('buildViewState');
     const nextState = events.reduce((state, event) => {
         const handler = handlers[event.type];
         if (handler) {
@@ -62,7 +67,21 @@ export function buildState(handlers: HandlerMap, events: Event[], currentState: 
             return state;
         }
     }, currentState);
-    console.timeEnd('buildState');
+    console.timeEnd('buildViewState');
+    return nextState;
+}
+
+export function buildValidationState(handlers: HandlerMap, events: Event[], currentState: ValidationState): ValidationState {
+    console.time('buildValidationState');
+    const nextState = events.reduce((state, event) => {
+        const handler = handlers[event.type];
+        if (handler) {
+            return handler(event, state);
+        } else {
+            return state;
+        }
+    }, currentState);
+    console.timeEnd('buildValidationState');
     return nextState;
 }
 

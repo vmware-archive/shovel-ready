@@ -48,12 +48,12 @@ const viewStateHandlers = {
     }
 };
 
-const emptyViewState = {
-    created: false,
-    itemIds: [],
-    name: 'Unknown',
-    items: [],
-};
+function emptyViewState(): list.ViewState {
+    return {
+        name: 'Unknown',
+        items: []
+    }
+}
 
 function loadListEvents(listId, fromVersion = 1, toVersion = 'latest') {
     return fetch(`/${listId}/events?fromVersion=${fromVersion}&toVersion=${toVersion}`).then((res) => res.json())
@@ -95,8 +95,8 @@ function renderUI(store) {
         const state = store.getState();
         if (state !== prevState) {
             prevState = state;
-            let viewState = list.buildState(viewStateHandlers, serverSync.events(state.serverSync), emptyViewState);
-            let validationState = list.buildState(list.eventHandlers, serverSync.events(state.serverSync), list.emptyState());
+            let viewState = list.buildViewState(viewStateHandlers, serverSync.events(state.serverSync), emptyViewState());
+            let validationState = list.buildValidationState(list.eventHandlers, serverSync.events(state.serverSync), list.emptyState());
             const commands = serverSync.commands(state.serverSync);
             viewState = handleCommands(commands, validationState, viewState);
             const onNewTaskInput = (newTaskName) => store.dispatch(newTaskInput(newTaskName));

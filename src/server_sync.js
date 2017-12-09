@@ -80,7 +80,7 @@ function pollForEvents(listId, store, fetchSyncState, fetchEvents) {
 }
 
 function executeCommand(state, command) {
-    const validationState = list.buildState(list.eventHandlers, state.events, list.emptyState());
+    const validationState = list.buildValidationState(list.eventHandlers, state.events, list.emptyState());
     return list.commandHandlers.addItem(command, validationState);
 }
 
