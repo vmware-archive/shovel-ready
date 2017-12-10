@@ -26,15 +26,20 @@ function newColumnSubmit(state) {
     };
 }
 
-function newTaskInput(newTaskName) {
+function newTaskInput(columnId, newTaskName) {
     return {
         type: 'newTaskInput',
+        columnId,
         newTaskName,
     }
 }
 
-function newTaskSubmit(state) {
-    const addItemCommand = retro.addItem({id: guid(), name: state.uiState.newTaskName});
+function newTaskSubmit(columnId, state) {
+    const addItemCommand = retro.addItem({
+        id: guid(), 
+        name: state.uiState.newTaskName,
+        columnId: columnId 
+    });
     return {
         type: 'commandQueued',
         command: addItemCommand,
@@ -56,14 +61,21 @@ const viewStateHandlers = {
         return {...state, name: event.retroName};
     },
     columnAdded: (event, state, pending = false) => {
-        let nextState:any = {...state, columns: state.columns.concat({name: event.name, pending: pending})};
-        return nextState;
+        return {...state, columns: state.columns.concat({name: event.name, id: event.id, items: [], pending: pending})};
     },
     columnRemoved: (event, state, pending = false) => {
-        return {...state, columns: state.columns.filter((name) => name === event.name)};
+        return {...state, columns: state.columns.filter((id) => id === event.id)};
     },
     itemAdded: (event, state, pending = false) => {
-        return {...state, items: state.items.concat({...event.item, pending: pending})};
+        // TODO: MORE FUNCTIONAL WAY TO DO THIS?
+        // THIS IS SUPER DIRTY!!
+        let foundColumnIndex = 0;
+        let column = state.columns.find((column, columnIndex) => {
+            foundColumnIndex = columnIndex;
+            return event.item.columnId === column.id;
+        });  
+        state.columns[foundColumnIndex].items = state.columns[foundColumnIndex].items.concat(event.item);
+        return state;
     },
     itemRemoved: (event, state, pending = false) => {
         return {...state, items: state.items.filter((item) => item.id === event.itemId)};
@@ -121,11 +133,12 @@ function renderUI(store) {
         if (state !== prevState) {
             prevState = state;
             let viewState = retro.buildViewState(viewStateHandlers, serverSync.events(state.serverSync), emptyViewState());
+            console.log("viewState", viewState);
             let validationState = retro.buildValidationState(retro.eventHandlers, serverSync.events(state.serverSync), retro.emptyState());
             const commands = serverSync.commands(state.serverSync);
             viewState = handleCommands(commands, validationState, viewState);
-            const onNewTaskInput = (newTaskName) => store.dispatch(newTaskInput(newTaskName));
-            const onNewTaskSubmit = () => store.dispatch(newTaskSubmit(store.getState()));
+            const onNewTaskInput = (columnId, newTaskName) => store.dispatch(newTaskInput(columnId, newTaskName));
+            const onNewTaskSubmit = (columnId) => store.dispatch(newTaskSubmit(columnId, store.getState()));
             const onNewColumnInput = (newColumnName) => store.dispatch(newColumnInput(newColumnName));
             const onNewColumnSubmit = () => store.dispatch(newColumnSubmit(store.getState()));
             ReactDOM.render(

@@ -140,12 +140,18 @@ export function removeColumn(id: string): RemoveColumn {
     }
 }
 
-export interface AddItem {
-    type: "addItem",
-    item: any
+export interface Item {
+    id: string,
+    columnId: string,
+    name: string
 }
 
-export function addItem(item: any): AddItem {
+export interface AddItem {
+    type: "addItem",
+    item: Item
+}
+
+export function addItem(item: Item): AddItem {
     return {
         type: "addItem",
         item
@@ -235,10 +241,10 @@ export function columnRemoved(id: string): ColumnRemoved{
 
 export interface ItemAdded {
     type: "itemAdded",
-    item: any,
+    item: Item,
 }
 
-export function itemAdded(item: string): ItemAdded {
+export function itemAdded(item: Item): ItemAdded {
     return {
         type: "itemAdded",
         item,
@@ -295,20 +301,22 @@ export interface HandlersMap {
 
 export const eventHandlers:HandlerMap = {
     retroCreated: (event, state) => ({...state, created: true}),
-    columnAdded: (event, state) => (
-        {
-            ...state, 
-            columnIds: state.columnIds.concat(event.id)
-        }
-    ),
-    columnRemoved: (event, state) => (
-        {
-            ...state, 
-            columnIds: state.columnIds.filter((id) => id === event.id)
-        }
-    ),
-    itemAdded: (event, state) => ({...state, itemIds: state.itemIds.concat(event.item.id)}),
-    itemRemoved: (event, state) => ({...state, itemIds: state.itemIds.filter((id) => id === event.itemId)}),
+    columnAdded: (event, state) => ({
+        ...state, 
+        columnIds: state.columnIds.concat(event.id)
+    }),
+    columnRemoved: (event, state) => ({
+        ...state, 
+        columnIds: state.columnIds.filter((id) => id === event.id)
+     }),
+    itemAdded: (event, state) => ({
+        ...state, 
+        itemIds: state.itemIds.concat(event.item.id)
+    }),
+    itemRemoved: (event, state) => ({
+        ...state, 
+        itemIds: state.itemIds.filter((id) => id === event.itemId)
+    }),
     itemCompleted: noopHandler,
     itemUncompleted: noopHandler,
 };

@@ -1,69 +1,61 @@
 import * as React from 'react';
+import { 
+    IColumnProps, 
+    IColumn,
+    Column,
+} from './column';
 
-export interface UIProps {
+export interface IUIProps {
     newTaskName: string,
     newColumnName: string,
 }
 
-export interface Retro {
+export interface IRetro {
     name: string,
-    items: RetroItem[],
-    columns: RetroColumn[],
+    columns: IColumn[],
 }
 
-export interface RetroItem {
-    id: string,
-    name: string,
-}
-
-export interface RetroColumn {
-    id: string,
-    name: string,
-}
-
-export interface AppProps {
-    retro: Retro,
-    ui: UIProps,
-    onNewTaskInput: (string) => {},
-    onNewTaskSubmit: () => {},
+export interface IAppProps {
+    retro: IRetro,
+    ui: IUIProps,
+    onNewTaskInput: (columnId: any, newTaskName: any) => {},
+    onNewTaskSubmit: (columnId: any) => {},
     onNewColumnInput: (string) => {},
     onNewColumnSubmit: () => {},
 }
 
-export interface AppState {
+export interface IAppState {
     
 }
 
-export default class App extends React.PureComponent<AppProps, AppState> {
+export default class App extends React.PureComponent<IAppProps, IAppState> {
     render() {
-        const {retro, ui} = this.props;
+        const {
+            retro, 
+            ui,
+            onNewTaskInput,
+            onNewTaskSubmit
+        } = this.props;
+        console.log("retro.columns", retro.columns);
 
         return (
             <div>
-                <span>{retro.name}</span>
-                <h1>Columns</h1>
-                { retro.columns.map((column) => { return <div key={column.id}>{column.name}</div> })}
+                <h3>{retro.name}</h3>
+                { retro.columns.map((column) => {
+                    return <Column key={column.id} 
+                        column={column}
+                        newTaskName={ui.newTaskName}
+                        onNewTaskInput={onNewTaskInput} 
+                        onNewTaskSubmit={onNewTaskSubmit} />
+                }) }
+                <h3>Add Columns</h3>
                 <form onSubmit={this.onAddColumn_}>
                     <input onInput={this.onColumnInputUpdated_} value={ui.newColumnName || ''} data-aid='NewColumnName' />
                     <button>Add Column</button> 
                 </form>
-                <form onSubmit={this.onAddItem_}>
-                    <span>{retro.items.length}</span>
-                    <input onInput={this.onTaskInputUpdated_} value={ui.newTaskName || ''} data-aid='NewTaskName' />
-                    <button>Add item</button>
-                </form>
-                {retro.items.reverse().map((item) => { return <li key={item.id}>{item.name}{this.savingIndicator_(item)}</li> })}
             </div>
         );
     }
-
-    savingIndicator_ = (item) => {
-        if (item.pending) {
-            return (<span>(saving)</span>);
-        } else {
-            return null;
-        }
-    };
 
     onColumnInputUpdated_ = (e) => {
         this.props.onNewColumnInput(e.target.value);
@@ -72,14 +64,5 @@ export default class App extends React.PureComponent<AppProps, AppState> {
     onAddColumn_ = (e) => {
         e.preventDefault();
         this.props.onNewColumnSubmit();
-    };
-
-    onTaskInputUpdated_ = (e) => {
-        this.props.onNewTaskInput(e.target.value);
-    };
-
-    onAddItem_ = (e) => {
-        e.preventDefault();
-        this.props.onNewTaskSubmit();
     };
 }
