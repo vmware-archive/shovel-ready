@@ -37,7 +37,7 @@ function newTaskInput(columnId, newTaskName) {
 function newTaskSubmit(columnId, state) {
     const addItemCommand = retro.addItem({
         id: guid(), 
-        name: state.uiState.newTaskName,
+        name: state.uiState.newTaskNames[columnId],
         columnId: columnId 
     });
     return {
@@ -133,7 +133,6 @@ function renderUI(store) {
         if (state !== prevState) {
             prevState = state;
             let viewState = retro.buildViewState(viewStateHandlers, serverSync.events(state.serverSync), emptyViewState());
-            console.log("viewState", viewState);
             let validationState = retro.buildValidationState(retro.eventHandlers, serverSync.events(state.serverSync), retro.emptyState());
             const commands = serverSync.commands(state.serverSync);
             viewState = handleCommands(commands, validationState, viewState);
@@ -160,7 +159,6 @@ function renderUI(store) {
 }
 
 function update(state, action) {
-    console.log(state, action);
     const nextUiState = handleUiAction(state.uiState, action);
     const nextServerSyncState = serverSync.handleAction(state.serverSync, action);
     if (state.uiState !== nextUiState || state.serverSync !== nextServerSyncState) {
@@ -177,7 +175,13 @@ function update(state, action) {
 function handleUiAction(uiState, action) {
     switch (action.type) {
         case 'newTaskInput':
-            return {...uiState, newTaskName: action.newTaskName};
+            return {
+                ...uiState, 
+                newTaskNames: {
+                    ...uiState.newTaskNames, 
+                    [action.columnId]: action.newTaskName
+                }
+            };
 
         case 'newColumnInput':
             return {...uiState, newColumnName: action.newColumnName};
@@ -185,7 +189,14 @@ function handleUiAction(uiState, action) {
         case 'commandQueued':
             switch(action.command.type) {
                 case 'addItem':
-                    return {...uiState, newTaskName: ''};
+                    return {
+                        ...uiState, 
+                        newTaskNames: {
+                            ...uiState.newTaskNames, 
+                            [action.command.item.columnId]: ''
+                        }
+                    };
+        
                 case 'addColumn':
                     return {...uiState, newColumnName: ''};
                 default:
@@ -206,7 +217,10 @@ loadRetroEvents(retroId, 1, 'latest').then((eventRecords) => {
                 eventRecords.map(eventRecord => eventRecord.eventData),
                 eventRecords[eventRecords.length - 1].retroVersion
             ),
-            uiState: {}
+            uiState: {
+                newTaskNames: {},
+                newColumnName: '',
+            }
         },
         applyMiddleware(
             thunkMiddleware,

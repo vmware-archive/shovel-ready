@@ -6,7 +6,7 @@ import {
 } from './column';
 
 export interface IUIProps {
-    newTaskName: string,
+    newTaskNames: Map<string, string>,
     newColumnName: string,
 }
 
@@ -36,7 +36,6 @@ export default class App extends React.PureComponent<IAppProps, IAppState> {
             onNewTaskInput,
             onNewTaskSubmit
         } = this.props;
-        console.log("retro.columns", retro.columns);
 
         return (
             <div>
@@ -44,13 +43,15 @@ export default class App extends React.PureComponent<IAppProps, IAppState> {
                 { retro.columns.map((column) => {
                     return <Column key={column.id} 
                         column={column}
-                        newTaskName={ui.newTaskName}
+                        newTaskName={ui.newTaskNames[column.id]}
                         onNewTaskInput={onNewTaskInput} 
                         onNewTaskSubmit={onNewTaskSubmit} />
                 }) }
                 <h3>Add Columns</h3>
                 <form onSubmit={this.onAddColumn_}>
-                    <input onInput={this.onColumnInputUpdated_} value={ui.newColumnName || ''} data-aid='NewColumnName' />
+                    <input onInput={this.onColumnInputUpdated_} 
+                        value={ui.newColumnName || ''} 
+                        data-aid='NewColumnName' />
                     <button>Add Column</button> 
                 </form>
             </div>
