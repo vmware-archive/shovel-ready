@@ -46,6 +46,17 @@ function newTaskSubmit(columnId, state) {
     };
 }
 
+function removeItemSubmit(itemId, columnId) {
+    const removeItemCommand = retro.removeItem(
+        itemId,
+        columnId
+    );
+    return {
+        type: 'commandQueued',
+        command: removeItemCommand,
+    };
+}
+
 function guid() {
     function s4() {
         return Math.floor((1 + Math.random()) * 0x10000)
@@ -78,7 +89,15 @@ const viewStateHandlers = {
         return state;
     },
     itemRemoved: (event, state, pending = false) => {
-        return {...state, items: state.items.filter((item) => item.id === event.itemId)};
+        // TODO: Do this in a better way
+        let newColumns = [...state.columns];
+        newColumns.forEach((column) => {
+            if (column.id === event.columnId) {
+                column.items = column.items.filter((item) => item.id !== event.itemId);
+            }
+        });
+        let newState = {...state, columns: newColumns};
+        return newState
     }
 };
 
@@ -102,6 +121,9 @@ function handleCommands(commands: retro.Command[], validationState: retro.Valida
         switch (command.type) {
             case "addItem": 
                 response = retro.commandHandlers.addItem(command, validationState);
+                break;
+            case "removeItem": 
+                response = retro.commandHandlers.removeItem(command, validationState);
                 break;
             case "addColumn":
                 response = retro.commandHandlers.addColumn(command, validationState);
@@ -138,12 +160,14 @@ function renderUI(store) {
             viewState = handleCommands(commands, validationState, viewState);
             const onNewTaskInput = (columnId, newTaskName) => store.dispatch(newTaskInput(columnId, newTaskName));
             const onNewTaskSubmit = (columnId) => store.dispatch(newTaskSubmit(columnId, store.getState()));
+            const onRemoveItemSubmit = (itemId, columnId) => store.dispatch(removeItemSubmit(itemId, columnId));
             const onNewColumnInput = (newColumnName) => store.dispatch(newColumnInput(newColumnName));
             const onNewColumnSubmit = () => store.dispatch(newColumnSubmit(store.getState()));
             ReactDOM.render(
                 <App retro={viewState} ui={state.uiState} 
                     onNewTaskInput={onNewTaskInput}
                     onNewTaskSubmit={onNewTaskSubmit}
+                    onRemoveItemSubmit={onRemoveItemSubmit}
                     onNewColumnInput={onNewColumnInput}
                     onNewColumnSubmit={onNewColumnSubmit}
                     />,
@@ -196,7 +220,6 @@ function handleUiAction(uiState, action) {
                             [action.command.item.columnId]: ''
                         }
                     };
-        
                 case 'addColumn':
                     return {...uiState, newColumnName: ''};
                 default:

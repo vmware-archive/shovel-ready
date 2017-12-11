@@ -20,6 +20,7 @@ export interface IAppProps {
     ui: IUIProps,
     onNewTaskInput: (columnId: any, newTaskName: any) => {},
     onNewTaskSubmit: (columnId: any) => {},
+    onRemoveItemSubmit: (itemId: string, columnId: string) => {},
     onNewColumnInput: (string) => {},
     onNewColumnSubmit: () => {},
 }
@@ -34,7 +35,8 @@ export default class App extends React.PureComponent<IAppProps, IAppState> {
             retro, 
             ui,
             onNewTaskInput,
-            onNewTaskSubmit
+            onNewTaskSubmit,
+            onRemoveItemSubmit
         } = this.props;
 
         return (
@@ -45,6 +47,7 @@ export default class App extends React.PureComponent<IAppProps, IAppState> {
                         return <Column key={column.id} 
                             column={column}
                             newTaskName={ui.newTaskNames[column.id]}
+                            onRemoveItemSubmit={onRemoveItemSubmit}
                             onNewTaskInput={onNewTaskInput} 
                             onNewTaskSubmit={onNewTaskSubmit} />
                     }) }

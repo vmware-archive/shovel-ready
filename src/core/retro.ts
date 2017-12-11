@@ -161,12 +161,14 @@ export function addItem(item: Item): AddItem {
 export interface RemoveItem {
     type: "removeItem",
     itemId: string,
+    columnId: string
 }
 
-export function removeItem(itemId: string): RemoveItem {
+export function removeItem(itemId: string, columnId: string): RemoveItem {
     return {
         type: "removeItem",
-        itemId
+        itemId,
+        columnId
     }
 }
 
@@ -253,13 +255,15 @@ export function itemAdded(item: Item): ItemAdded {
 
 export interface ItemRemoved {
     type: "itemRemoved",
-    itemId: string
+    itemId: string,
+    columnId: string
 }
 
-export function itemRemoved(itemId: string): ItemRemoved {
+export function itemRemoved(itemId: string, columnId: string): ItemRemoved {
     return {
         type: "itemRemoved",
         itemId,
+        columnId
     }
 }
 
@@ -361,7 +365,7 @@ export const commandHandlers = {
     },
 
     removeItem: (command: RemoveItem, state: ValidationState): CommandHandlerResponse => {
-        return ok(itemRemoved(command.itemId));
+        return ok(itemRemoved(command.itemId, command.columnId));
     },
 
     completeItem: (command: CompleteItem, state: ValidationState): CommandHandlerResponse => {

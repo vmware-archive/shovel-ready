@@ -27,6 +27,7 @@ export function handleAction(state, action) {
             switch (action.command.type) {
                 case 'addItem':
                 case 'addColumn':
+                case 'removeItem':
                     return {
                         ...state,
                         commands: state.commands.concat([action.command])
@@ -87,6 +88,8 @@ function executeCommand(state, command) {
         return retro.commandHandlers.addItem(command, validationState);
     } else if (command.type === 'addColumn') {
         return retro.commandHandlers.addColumn(command, validationState);
+    } else if (command.type === 'removeItem') {
+        return retro.commandHandlers.removeItem(command, validationState);
     }
 }
 

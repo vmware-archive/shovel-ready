@@ -4,6 +4,7 @@ export interface IColumnProps {
     column: IColumn,
     onNewTaskInput: (columnId: string, newTaskName: string) => {},
     onNewTaskSubmit: (columnId: string) => {},
+    onRemoveItemSubmit: (itemId: string, columnId: string) => {},
     newTaskName: string,
 }
 
@@ -38,7 +39,9 @@ export class Column extends React.PureComponent<IColumnProps, IColumnState> {
                 <input onInput={this.onTaskInputUpdated_} value={newTaskName || ''} data-aid='NewTaskName' />
                 <button>Add item</button>
             </form>
-            {items.reverse().map((item) => { return <li key={item.id}>{item.name}{this.savingIndicator_(item)}</li> })}
+            {items.reverse().map((item) => { 
+                return <li key={item.id}>{item.name}{this.savingIndicator_(item)} - <button data-aid={item.id} onClick={this.onRemoveItemSubmit_} >❌</button></li>
+            })}
             </div>);
 
     }
@@ -49,6 +52,10 @@ export class Column extends React.PureComponent<IColumnProps, IColumnState> {
         } else {
             return null;
         }
+    };
+
+    onRemoveItemSubmit_ = (e) => {
+        this.props.onRemoveItemSubmit(e.target.getAttribute('data-aid'), this.props.column.id);
     };
 
     onTaskInputUpdated_ = (e) => {
