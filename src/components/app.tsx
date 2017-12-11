@@ -6,7 +6,7 @@ import {
 } from './column';
 
 export interface IUIProps {
-    newTaskNames: Map<string, string>,
+    newItemNames: Map<string, string>,
     newColumnName: string,
 }
 
@@ -18,8 +18,8 @@ export interface IRetro {
 export interface IAppProps {
     retro: IRetro,
     ui: IUIProps,
-    onNewTaskInput: (columnId: any, newTaskName: any) => {},
-    onNewTaskSubmit: (columnId: any) => {},
+    onNewItemInput: (columnId: any, newItemName: any) => {},
+    onNewItemSubmit: (columnId: any) => {},
     onRemoveItemSubmit: (itemId: string, columnId: string) => {},
     onNewColumnInput: (string) => {},
     onNewColumnSubmit: () => {},
@@ -34,8 +34,8 @@ export default class App extends React.PureComponent<IAppProps, IAppState> {
         const {
             retro, 
             ui,
-            onNewTaskInput,
-            onNewTaskSubmit,
+            onNewItemInput,
+            onNewItemSubmit,
             onRemoveItemSubmit
         } = this.props;
 
@@ -46,10 +46,10 @@ export default class App extends React.PureComponent<IAppProps, IAppState> {
                     { retro.columns.map((column) => {
                         return <Column key={column.id} 
                             column={column}
-                            newTaskName={ui.newTaskNames[column.id]}
+                            newItemName={ui.newItemNames[column.id]}
                             onRemoveItemSubmit={onRemoveItemSubmit}
-                            onNewTaskInput={onNewTaskInput} 
-                            onNewTaskSubmit={onNewTaskSubmit} />
+                            onNewItemInput={onNewItemInput} 
+                            onNewItemSubmit={onNewItemSubmit} />
                     }) }
                 </div>
                 <h3>Add Column</h3>

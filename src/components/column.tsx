@@ -2,10 +2,10 @@ import * as React from 'react';
 
 export interface IColumnProps {
     column: IColumn,
-    onNewTaskInput: (columnId: string, newTaskName: string) => {},
-    onNewTaskSubmit: (columnId: string) => {},
+    onNewItemInput: (columnId: string, newItemName: string) => {},
+    onNewItemSubmit: (columnId: string) => {},
     onRemoveItemSubmit: (itemId: string, columnId: string) => {},
-    newTaskName: string,
+    newItemName: string,
 }
 
 export interface IColumn {
@@ -30,13 +30,13 @@ export class Column extends React.PureComponent<IColumnProps, IColumnState> {
             items
         } = this.props.column;
         const {
-            newTaskName
+            newItemName
         } = this.props;
 
         return (<div style={{border: '1px solid black', margin: '5px', padding: '5px'}}>
             <h4>{name}</h4>
             <form onSubmit={this.onAddItem_}>
-                <input onInput={this.onTaskInputUpdated_} value={newTaskName || ''} data-aid='NewTaskName' />
+                <input onInput={this.onItemInputUpdated_} value={newItemName || ''} data-aid='NewItemName' />
                 <button>Add item</button>
             </form>
             {items.reverse().map((item) => { 
@@ -58,13 +58,13 @@ export class Column extends React.PureComponent<IColumnProps, IColumnState> {
         this.props.onRemoveItemSubmit(e.target.getAttribute('data-aid'), this.props.column.id);
     };
 
-    onTaskInputUpdated_ = (e) => {
-        this.props.onNewTaskInput(this.props.column.id, e.target.value);
+    onItemInputUpdated_ = (e) => {
+        this.props.onNewItemInput(this.props.column.id, e.target.value);
     };
 
     onAddItem_ = (e) => {
         e.preventDefault();
-        this.props.onNewTaskSubmit(this.props.column.id);
+        this.props.onNewItemSubmit(this.props.column.id);
     };
 }
 

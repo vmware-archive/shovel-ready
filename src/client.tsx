@@ -26,18 +26,18 @@ function newColumnSubmit(state) {
     };
 }
 
-function newItemInput(columnId, newTaskName) {
+function newItemInput(columnId, newItemName) {
     return {
         type: 'newItemInput',
         columnId,
-        newTaskName,
+        newItemName,
     }
 }
 
 function newItemSubmit(columnId, state) {
     const addItemCommand = retro.addItem({
         id: guid(), 
-        name: state.uiState.newTaskNames[columnId],
+        name: state.uiState.newItemNames[columnId],
         columnId: columnId 
     });
     return {
@@ -158,15 +158,15 @@ function renderUI(store) {
             let validationState = retro.buildValidationState(retro.eventHandlers, serverSync.events(state.serverSync), retro.emptyState());
             const commands = serverSync.commands(state.serverSync);
             viewState = handleCommands(commands, validationState, viewState);
-            const onNewTaskInput = (columnId, newTaskName) => store.dispatch(newItemInput(columnId, newTaskName));
-            const onNewTaskSubmit = (columnId) => store.dispatch(newItemSubmit(columnId, store.getState()));
+            const onNewItemInput = (columnId, newItemName) => store.dispatch(newItemInput(columnId, newItemName));
+            const onNewItemSubmit = (columnId) => store.dispatch(newItemSubmit(columnId, store.getState()));
             const onRemoveItemSubmit = (itemId, columnId) => store.dispatch(removeItemSubmit(itemId, columnId));
             const onNewColumnInput = (newColumnName) => store.dispatch(newColumnInput(newColumnName));
             const onNewColumnSubmit = () => store.dispatch(newColumnSubmit(store.getState()));
             ReactDOM.render(
                 <App retro={viewState} ui={state.uiState} 
-                    onNewTaskInput={onNewTaskInput}
-                    onNewTaskSubmit={onNewTaskSubmit}
+                    onNewItemInput={onNewItemInput}
+                    onNewItemSubmit={onNewItemSubmit}
                     onRemoveItemSubmit={onRemoveItemSubmit}
                     onNewColumnInput={onNewColumnInput}
                     onNewColumnSubmit={onNewColumnSubmit}
@@ -201,9 +201,9 @@ function handleUiAction(uiState, action) {
         case 'newItemInput':
             return {
                 ...uiState, 
-                newTaskNames: {
-                    ...uiState.newTaskNames, 
-                    [action.columnId]: action.newTaskName
+                newItemNames: {
+                    ...uiState.newItemNames, 
+                    [action.columnId]: action.newItemName
                 }
             };
 
@@ -215,8 +215,8 @@ function handleUiAction(uiState, action) {
                 case 'addItem':
                     return {
                         ...uiState, 
-                        newTaskNames: {
-                            ...uiState.newTaskNames, 
+                        newItemNames: {
+                            ...uiState.newItemNames, 
                             [action.command.item.columnId]: ''
                         }
                     };
@@ -241,7 +241,7 @@ loadRetroEvents(retroId, 1, 'latest').then((eventRecords) => {
                 eventRecords[eventRecords.length - 1].retroVersion
             ),
             uiState: {
-                newTaskNames: {},
+                newItemNames: {},
                 newColumnName: '',
             }
         },
