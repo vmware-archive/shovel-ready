@@ -32,7 +32,7 @@ export class Column extends React.PureComponent<IColumnProps, IColumnState> {
             newTaskName
         } = this.props;
 
-        return (<div>
+        return (<div style={{border: '1px solid black', margin: '5px', padding: '5px'}}>
             <h4>{name}</h4>
             <form onSubmit={this.onAddItem_}>
                 <input onInput={this.onTaskInputUpdated_} value={newTaskName || ''} data-aid='NewTaskName' />

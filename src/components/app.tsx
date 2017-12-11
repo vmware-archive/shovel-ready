@@ -40,14 +40,16 @@ export default class App extends React.PureComponent<IAppProps, IAppState> {
         return (
             <div>
                 <h3>{retro.name}</h3>
-                { retro.columns.map((column) => {
-                    return <Column key={column.id} 
-                        column={column}
-                        newTaskName={ui.newTaskNames[column.id]}
-                        onNewTaskInput={onNewTaskInput} 
-                        onNewTaskSubmit={onNewTaskSubmit} />
-                }) }
-                <h3>Add Columns</h3>
+                <div style={{display: 'flex'}} >
+                    { retro.columns.map((column) => {
+                        return <Column key={column.id} 
+                            column={column}
+                            newTaskName={ui.newTaskNames[column.id]}
+                            onNewTaskInput={onNewTaskInput} 
+                            onNewTaskSubmit={onNewTaskSubmit} />
+                    }) }
+                </div>
+                <h3>Add Column</h3>
                 <form onSubmit={this.onAddColumn_}>
                     <input onInput={this.onColumnInputUpdated_} 
                         value={ui.newColumnName || ''} 
