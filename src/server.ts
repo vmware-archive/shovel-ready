@@ -10,7 +10,7 @@ const connection = mysql.createConnection({
     host: 'localhost',
     user: 'root',
     password: 'password',
-    database: 'ref_arch_02',
+    database: 'shovel_ready',
 });
 
 const createRetro = (event: retro.RetroCreated) => {
