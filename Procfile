@@ -1,2 +1,2 @@
-server: babel-node src/server.js
+server: ts-node src/server.ts
 client: webpack --watch

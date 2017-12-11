@@ -1,4 +1,4 @@
-import * as list from './core/list';
+import * as retro from './core/retro';
 
 export function init(commands, events, latestVersion) {
     return {
@@ -16,9 +16,9 @@ export function events(state) {
     return state.events;
 }
 
-export function syncWithServer(listId, store, fetchSyncState, fetchEvents) {
-    processCommands(listId, store, fetchSyncState);
-    pollForEvents(listId, store, fetchSyncState, fetchEvents);
+export function syncWithServer(retroId, store, fetchSyncState, fetchEvents) {
+    processCommands(retroId, store, fetchSyncState);
+    pollForEvents(retroId, store, fetchSyncState, fetchEvents);
 }
 
 export function handleAction(state, action) {
@@ -26,6 +26,8 @@ export function handleAction(state, action) {
         case 'commandQueued':
             switch (action.command.type) {
                 case 'addItem':
+                case 'addColumn':
+                case 'removeItem':
                     return {
                         ...state,
                         commands: state.commands.concat([action.command])
@@ -64,27 +66,34 @@ export function handleAction(state, action) {
 }
 
 
-function pollForEvents(listId, store, fetchSyncState, fetchEvents) {
+function pollForEvents(retroId, store, fetchSyncState, fetchEvents) {
     setTimeout(() => {
-        fetchEvents(listId, fetchSyncState(store).latestVersion + 1).then((eventRecords) => {
+        fetchEvents(retroId, fetchSyncState(store).latestVersion + 1).then((eventRecords) => {
             if (eventRecords.length > 0) {
                 store.dispatch({
                     type: 'eventsReceived',
                     events: eventRecords.map(eventRecord => eventRecord.eventData),
-                    latestVersion: eventRecords.length > 0 ? eventRecords[eventRecords.length - 1].listVersion : undefined,
+                    latestVersion: eventRecords.length > 0 ? eventRecords[eventRecords.length - 1].retroVersion : undefined,
                 });
             }
-            pollForEvents(listId, store, fetchSyncState, fetchEvents);
+            pollForEvents(retroId, store, fetchSyncState, fetchEvents);
         });
     }, 1000);
 }
 
 function executeCommand(state, command) {
-    const validationState = list.buildState(list.eventHandlers, state.events, list.emptyState());
-    return list.commandHandlers.addItem(command, validationState);
+    const validationState = retro.buildValidationState(retro.eventHandlers, state.events, retro.emptyState());
+
+    if (command.type === 'addItem') {
+        return retro.commandHandlers.addItem(command, validationState);
+    } else if (command.type === 'addColumn') {
+        return retro.commandHandlers.addColumn(command, validationState);
+    } else if (command.type === 'removeItem') {
+        return retro.commandHandlers.removeItem(command, validationState);
+    }
 }
 
-function processCommands(listId, store, fetchSyncState) {
+function processCommands(retroId, store, fetchSyncState) {
     let processingCommands = false;
     const processNextCommand = () => {
         const state = fetchSyncState(store);
@@ -99,7 +108,7 @@ function processCommands(listId, store, fetchSyncState) {
                     command: command,
                 };
 
-                return fetch(`/${listId}/commands`, {
+                return fetch(`/${retroId}/commands`, {
                     method: "POST",
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(body)
