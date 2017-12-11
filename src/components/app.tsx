@@ -59,6 +59,7 @@ export default class App extends React.PureComponent<IAppProps, IAppState> {
                         data-aid='NewColumnName' />
                     <button>Add Column</button> 
                 </form>
+                <a href="/">Back to all retros</a>
             </div>
         );
     }
