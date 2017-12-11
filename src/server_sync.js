@@ -90,6 +90,8 @@ function executeCommand(state, command) {
         return retro.commandHandlers.addColumn(command, validationState);
     } else if (command.type === 'removeItem') {
         return retro.commandHandlers.removeItem(command, validationState);
+    } else {
+        throw "command not handled in executeCommand"
     }
 }
 
