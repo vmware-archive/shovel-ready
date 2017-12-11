@@ -26,15 +26,15 @@ function newColumnSubmit(state) {
     };
 }
 
-function newTaskInput(columnId, newTaskName) {
+function newItemInput(columnId, newTaskName) {
     return {
-        type: 'newTaskInput',
+        type: 'newItemInput',
         columnId,
         newTaskName,
     }
 }
 
-function newTaskSubmit(columnId, state) {
+function newItemSubmit(columnId, state) {
     const addItemCommand = retro.addItem({
         id: guid(), 
         name: state.uiState.newTaskNames[columnId],
@@ -158,8 +158,8 @@ function renderUI(store) {
             let validationState = retro.buildValidationState(retro.eventHandlers, serverSync.events(state.serverSync), retro.emptyState());
             const commands = serverSync.commands(state.serverSync);
             viewState = handleCommands(commands, validationState, viewState);
-            const onNewTaskInput = (columnId, newTaskName) => store.dispatch(newTaskInput(columnId, newTaskName));
-            const onNewTaskSubmit = (columnId) => store.dispatch(newTaskSubmit(columnId, store.getState()));
+            const onNewTaskInput = (columnId, newTaskName) => store.dispatch(newItemInput(columnId, newTaskName));
+            const onNewTaskSubmit = (columnId) => store.dispatch(newItemSubmit(columnId, store.getState()));
             const onRemoveItemSubmit = (itemId, columnId) => store.dispatch(removeItemSubmit(itemId, columnId));
             const onNewColumnInput = (newColumnName) => store.dispatch(newColumnInput(newColumnName));
             const onNewColumnSubmit = () => store.dispatch(newColumnSubmit(store.getState()));
@@ -198,7 +198,7 @@ function update(state, action) {
 
 function handleUiAction(uiState, action) {
     switch (action.type) {
-        case 'newTaskInput':
+        case 'newItemInput':
             return {
                 ...uiState, 
                 newTaskNames: {
