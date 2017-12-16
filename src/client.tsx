@@ -7,65 +7,11 @@ import App from './components/app';
 import * as retro from './core/retro';
 import * as serverSync from './server_sync';
 
+import * as boardActions from './actions/board';
+
 const url = window.location.href;
 const lastSlashIndex = url.lastIndexOf('/');
 const retroId = url.substring(lastSlashIndex + 1);
-
-function newColumnInput(newColumnName) {
-    return {
-        type: 'newColumnInput',
-        newColumnName,
-    }
-}
-
-function newColumnSubmit(state) {
-    const addColumnCommand = retro.addColumn(guid(), state.uiState.newColumnName);
-    return {
-        type: 'commandQueued',
-        command: addColumnCommand,
-    };
-}
-
-function newItemInput(columnId, newItemName) {
-    return {
-        type: 'newItemInput',
-        columnId,
-        newItemName,
-    }
-}
-
-function newItemSubmit(columnId, state) {
-    const addItemCommand = retro.addItem({
-        id: guid(), 
-        name: state.uiState.newItemNames[columnId],
-        columnId: columnId 
-    });
-    return {
-        type: 'commandQueued',
-        command: addItemCommand,
-    };
-}
-
-function removeItemSubmit(itemId, columnId) {
-    const removeItemCommand = retro.removeItem(
-        itemId,
-        columnId
-    );
-    return {
-        type: 'commandQueued',
-        command: removeItemCommand,
-    };
-}
-
-function guid() {
-    function s4() {
-        return Math.floor((1 + Math.random()) * 0x10000)
-            .toString(16)
-            .substring(1);
-    }
-    return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
-        s4() + '-' + s4() + s4() + s4();
-}
 
 const viewStateHandlers = {
     retroCreated: (event, state) => {
@@ -158,11 +104,11 @@ function renderUI(store) {
             let validationState = retro.buildValidationState(retro.eventHandlers, serverSync.events(state.serverSync), retro.emptyState());
             const commands = serverSync.commands(state.serverSync);
             viewState = handleCommands(commands, validationState, viewState);
-            const onNewItemInput = (columnId, newItemName) => store.dispatch(newItemInput(columnId, newItemName));
-            const onNewItemSubmit = (columnId) => store.dispatch(newItemSubmit(columnId, store.getState()));
-            const onRemoveItemSubmit = (itemId, columnId) => store.dispatch(removeItemSubmit(itemId, columnId));
-            const onNewColumnInput = (newColumnName) => store.dispatch(newColumnInput(newColumnName));
-            const onNewColumnSubmit = () => store.dispatch(newColumnSubmit(store.getState()));
+            const onNewItemInput = (columnId, newItemName) => store.dispatch(boardActions.newItemInput(columnId, newItemName));
+            const onNewItemSubmit = (columnId) => store.dispatch(boardActions.newItemSubmit(columnId, store.getState()));
+            const onRemoveItemSubmit = (itemId, columnId) => store.dispatch(boardActions.removeItemSubmit(itemId, columnId));
+            const onNewColumnInput = (newColumnName) => store.dispatch(boardActions.newColumnInput(newColumnName));
+            const onNewColumnSubmit = () => store.dispatch(boardActions.newColumnSubmit(store.getState()));
             ReactDOM.render(
                 <App retro={viewState} ui={state.uiState} 
                     onNewItemInput={onNewItemInput}
