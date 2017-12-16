@@ -8,8 +8,8 @@ export function newColumnInput(newColumnName) {
     }
 }
 
-export function newColumnSubmit(state) {
-    const addColumnCommand = retro.addColumn(guid(), state.uiState.newColumnName);
+export function newColumnSubmit(newColumnName) {
+    const addColumnCommand = retro.addColumn(guid(), newColumnName);
     return {
         type: 'commandQueued',
         command: addColumnCommand,
@@ -24,10 +24,10 @@ export function newItemInput(columnId, newItemName) {
     }
 }
 
-export function newItemSubmit(columnId, state) {
+export function newItemSubmit(columnId, newItemName) {
     const addItemCommand = retro.addItem({
         id: guid(), 
-        name: state.uiState.newItemNames[columnId],
+        name: newItemName,
         columnId: columnId 
     });
     return {

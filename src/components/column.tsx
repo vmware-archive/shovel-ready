@@ -3,7 +3,7 @@ import * as React from 'react';
 export interface IColumnProps {
     column: IColumn,
     onNewItemInput: (columnId: string, newItemName: string) => {},
-    onNewItemSubmit: (columnId: string) => {},
+    onNewItemSubmit: (columnId: string, newItemName: string) => {},
     onRemoveItemSubmit: (itemId: string, columnId: string) => {},
     newItemName: string,
 }
@@ -64,7 +64,7 @@ export class Column extends React.PureComponent<IColumnProps, IColumnState> {
 
     onAddItem_ = (e) => {
         e.preventDefault();
-        this.props.onNewItemSubmit(this.props.column.id);
+        this.props.onNewItemSubmit(this.props.column.id, this.props.newItemName);
     };
 }
 

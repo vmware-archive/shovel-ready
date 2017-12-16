@@ -19,10 +19,10 @@ export interface IAppProps {
     retro: IRetro,
     ui: IUIProps,
     onNewItemInput: (columnId: any, newItemName: any) => {},
-    onNewItemSubmit: (columnId: any) => {},
+    onNewItemSubmit: (columnId: any, newItemName: string) => {},
     onRemoveItemSubmit: (itemId: string, columnId: string) => {},
     onNewColumnInput: (string) => {},
-    onNewColumnSubmit: () => {},
+    onNewColumnSubmit: (string) => {},
 }
 
 export interface IAppState {
@@ -36,7 +36,7 @@ export default class App extends React.PureComponent<IAppProps, IAppState> {
             ui,
             onNewItemInput,
             onNewItemSubmit,
-            onRemoveItemSubmit
+            onRemoveItemSubmit,
         } = this.props;
 
         return (
@@ -70,6 +70,6 @@ export default class App extends React.PureComponent<IAppProps, IAppState> {
 
     onAddColumn_ = (e) => {
         e.preventDefault();
-        this.props.onNewColumnSubmit();
+        this.props.onNewColumnSubmit(this.props.ui.newColumnName);
     };
 }

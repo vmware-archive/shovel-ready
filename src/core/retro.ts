@@ -58,6 +58,14 @@ export interface ViewState {
     columns: any[],
 }
 
+export function emptyViewState(): ViewState {
+    return {
+        name: 'Unknown',
+        items: [],
+        columns: [],
+    }
+}
+
 export function ok<O, E>(value: O): Result<O, E> {
     return {type: "ok", value}
 }
