@@ -17,7 +17,7 @@ export interface IRetro {
 
 export interface IAppProps {
     retro: IRetro,
-    ui: IUIProps,
+    draft: IUIProps,
     onNewItemInput: (columnId: any, newItemName: any) => {},
     onNewItemSubmit: (columnId: any, newItemName: string) => {},
     onRemoveItemSubmit: (itemId: string, columnId: string) => {},
@@ -33,7 +33,7 @@ export default class App extends React.PureComponent<IAppProps, IAppState> {
     render() {
         const {
             retro, 
-            ui,
+            draft,
             onNewItemInput,
             onNewItemSubmit,
             onRemoveItemSubmit,
@@ -46,7 +46,7 @@ export default class App extends React.PureComponent<IAppProps, IAppState> {
                     { retro.columns.map((column) => {
                         return <Column key={column.id} 
                             column={column}
-                            newItemName={ui.newItemNames[column.id]}
+                            newItemName={draft.newItemNames[column.id]}
                             onRemoveItemSubmit={onRemoveItemSubmit}
                             onNewItemInput={onNewItemInput} 
                             onNewItemSubmit={onNewItemSubmit} />
@@ -55,7 +55,7 @@ export default class App extends React.PureComponent<IAppProps, IAppState> {
                 <h3>Add Column</h3>
                 <form onSubmit={this.onAddColumn_}>
                     <input onInput={this.onColumnInputUpdated_} 
-                        value={ui.newColumnName || ''} 
+                        value={draft.newColumnName || ''} 
                         data-aid='NewColumnName' />
                     <button>Add Column</button> 
                 </form>
@@ -70,6 +70,6 @@ export default class App extends React.PureComponent<IAppProps, IAppState> {
 
     onAddColumn_ = (e) => {
         e.preventDefault();
-        this.props.onNewColumnSubmit(this.props.ui.newColumnName);
+        this.props.onNewColumnSubmit(this.props.draft.newColumnName);
     };
 }

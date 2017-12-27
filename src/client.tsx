@@ -27,7 +27,7 @@ loadRetroEvents(retroId, 1, 'latest').then((eventRecords) => {
                 eventRecords.map(eventRecord => eventRecord.eventData),
                 eventRecords[eventRecords.length - 1].retroVersion
             ),
-            uiState: {
+            draft: {
                 newItemNames: {},
                 newColumnName: '',
             }

@@ -1,8 +1,8 @@
 import { combineReducers } from "redux";
-import { uiReducer } from "./ui";
+import { draftReducer } from "./draft";
 import { serverSyncReducer } from './serverSync';
 
 export const rootReducer = combineReducers({
-    uiState: uiReducer,
+    draft: draftReducer,
     serverSync: serverSyncReducer,
 });

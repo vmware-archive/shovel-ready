@@ -19,7 +19,7 @@ function calcViewState(state): retro.ViewState {
 
 const mapStateToProps = state => {
     return {
-        ui: (state || {}).uiState,
+        draft: (state || {}).draft,
         retro: calcViewState(state) as IRetro, // BOO!
     }
 }
