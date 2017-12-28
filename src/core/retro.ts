@@ -50,10 +50,10 @@ export interface ValidationState {
     created: boolean,
     itemIds: string[],
     columnIds: string[],
-}
+}   
 
 export interface ViewState {
-    name: 'Unknown',
+    name: string,
     items: any[],
     columns: any[],
 }

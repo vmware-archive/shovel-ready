@@ -1,6 +1,9 @@
 import * as retro from './core/retro';
+import { Store } from 'redux';
+import { StoreState, ServerSync } from './types/app';
+import { CommandHandlerResponse, ValidationState, Command, Event } from './core/retro';
 
-export function init(commands, events, latestVersion) {
+export function init(commands: Command[], events: Event[], latestVersion: number): ServerSync {
     return {
         commands,
         events,
@@ -16,12 +19,12 @@ export function events(state) {
     return state.events;
 }
 
-export function syncWithServer(retroId, store, fetchSyncState, fetchEvents) {
+export function syncWithServer(retroId: string, store: Store<StoreState>, fetchSyncState, fetchEvents) {
     processCommands(retroId, store, fetchSyncState);
     pollForEvents(retroId, store, fetchSyncState, fetchEvents);
 }
 
-function pollForEvents(retroId, store, fetchSyncState, fetchEvents) {
+function pollForEvents(retroId: string, store: Store<StoreState>, fetchSyncState, fetchEvents) {
     setTimeout(() => {
         fetchEvents(retroId, fetchSyncState(store).latestVersion + 1).then((eventRecords) => {
             if (eventRecords.length > 0) {
@@ -36,7 +39,7 @@ function pollForEvents(retroId, store, fetchSyncState, fetchEvents) {
     }, 1000);
 }
 
-function executeCommand(state, command) {
+function executeCommand(state: ServerSync, command: Command): CommandHandlerResponse {
     const validationState = retro.buildValidationState(retro.eventHandlers, state.events, retro.emptyState());
 
     if (command.type === 'addItem') {
@@ -50,7 +53,7 @@ function executeCommand(state, command) {
     }
 }
 
-function processCommands(retroId, store, fetchSyncState) {
+function processCommands(retroId: string, store: Store<StoreState>, fetchSyncState) {
     let processingCommands = false;
     const processNextCommand = () => {
         const state = fetchSyncState(store);

@@ -1,7 +1,8 @@
 import * as retro from '../core/retro';
 import { viewStateHandlers } from '../handlers/viewState';
+import { ViewState } from '../core/retro';
 
-export function handleCommands(commands: retro.Command[], validationState: retro.ValidationState, viewState) {
+export function handleCommands(commands: retro.Command[], validationState: retro.ValidationState, viewState: ViewState): ViewState {
     for (let i = 0; i < commands.length; i++) {
         let command = commands[i];
         let response: retro.CommandHandlerResponse | null;

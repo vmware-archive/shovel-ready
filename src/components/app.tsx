@@ -5,7 +5,7 @@ import {
     Column,
 } from './column';
 
-export interface IUIProps {
+export interface IDraftProps {
     newItemNames: Map<string, string>,
     newColumnName: string,
 }
@@ -17,7 +17,7 @@ export interface IRetro {
 
 export interface IAppProps {
     retro: IRetro,
-    draft: IUIProps,
+    draft: IDraftProps,
     onNewItemInput: (columnId: any, newItemName: any) => {},
     onNewItemSubmit: (columnId: any, newItemName: string) => {},
     onRemoveItemSubmit: (itemId: string, columnId: string) => {},
