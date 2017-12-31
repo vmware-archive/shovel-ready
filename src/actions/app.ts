@@ -1,14 +1,27 @@
 import * as retro from '../core/retro';
 import { guid } from '../helpers/guid';
+import { AddColumn } from '../core/retro';
 
-export function newColumnInput(newColumnName) {
+export type DraftAction = NewColumnInput | NewColumnSubmit | NewItemInput | NewItemSubmit | RemoveItemSubmit
+
+export interface NewColumnInput {
+    type: 'newColumnInput'
+    newColumnName: string
+}
+
+export function newColumnInput(newColumnName: string): NewColumnInput {
     return {
         type: 'newColumnInput',
         newColumnName,
     }
 }
 
-export function newColumnSubmit(newColumnName) {
+export interface NewColumnSubmit {
+    type: 'commandQueued'
+    command: AddColumn
+}
+
+export function newColumnSubmit(newColumnName: string): NewColumnSubmit {
     const addColumnCommand = retro.addColumn(guid(), newColumnName);
     return {
         type: 'commandQueued',
@@ -16,7 +29,13 @@ export function newColumnSubmit(newColumnName) {
     };
 }
 
-export function newItemInput(columnId, newItemName) {
+export interface NewItemInput {
+    type: 'newItemInput',
+    columnId: string,
+    newItemName: string,
+}
+
+export function newItemInput(columnId: string, newItemName: string): NewItemInput {
     return {
         type: 'newItemInput',
         columnId,
@@ -24,7 +43,12 @@ export function newItemInput(columnId, newItemName) {
     }
 }
 
-export function newItemSubmit(columnId, newItemName) {
+export interface NewItemSubmit {
+    type: 'commandQueued',
+    command: retro.AddItem
+}
+
+export function newItemSubmit(columnId: string, newItemName: string): NewItemSubmit {
     const addItemCommand = retro.addItem({
         id: guid(), 
         name: newItemName,
@@ -36,7 +60,12 @@ export function newItemSubmit(columnId, newItemName) {
     };
 }
 
-export function removeItemSubmit(itemId, columnId) {
+export interface RemoveItemSubmit {
+    type: 'commandQueued',
+    command: retro.RemoveItem
+}
+
+export function removeItemSubmit(itemId: string, columnId: string): RemoveItemSubmit {
     const removeItemCommand = retro.removeItem(
         itemId,
         columnId

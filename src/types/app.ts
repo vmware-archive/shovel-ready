@@ -6,6 +6,11 @@ export interface ServerSync {
     latestVersion: number
 }
 
+export const INITIAL_DRAFT_STATE: DraftState = {
+    newItemNames: {},
+    newColumnName: '',
+};
+
 export interface DraftState {
     newItemNames: Object,
     newColumnName: string

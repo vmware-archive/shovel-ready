@@ -1,11 +1,7 @@
-import { DraftState } from '../types/app';
+import { DraftState, INITIAL_DRAFT_STATE } from '../types/app';
+import { DraftAction } from '../actions/app';
 
-const INITIAL_DRAFT_STATE: DraftState = {
-    newItemNames: {},
-    newColumnName: '',
-};
-
-export function draftReducer(draft = INITIAL_DRAFT_STATE, action): DraftState {
+export function draftReducer(draft = INITIAL_DRAFT_STATE, action: DraftAction): DraftState {
     switch (action.type) {
         case 'newItemInput':
             return {
